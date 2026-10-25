@@ -1,0 +1,370 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Путеводник по играм: время прохождения, настроение, кому зайдёт и похожие игры на одной карточке.">
+<title>Путеводник по играм</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;700;800&display=swap">
+<style>
+/* Layout: редакционная вёрстка в духе журнала. Гигантское слово-логотип, микро-навигация, подписи с номерами, широкий блок-обложка, строки с тонкими линиями, сетка каталога. Только чёрный и белый, серый появляется лишь как смесь этих двух. */
+:root {
+  --bg: #ffffff;
+  --fg: #000000;
+  --muted: color-mix(in srgb, var(--fg) 55%, var(--bg));
+  --line: color-mix(in srgb, var(--fg) 20%, var(--bg));
+  --font: "Onest", "Helvetica Neue", Arial, system-ui, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --bg: #000000; --fg: #ffffff; color-scheme: dark; }
+}
+:root[data-theme="dark"] { --bg: #000000; --fg: #ffffff; color-scheme: dark; }
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+img { max-width: 100%; }
+body {
+  margin: 0;
+  background: var(--bg); color: var(--fg);
+  font-family: var(--font); font-size: 14px; line-height: 1.45;
+  padding-block: 18px 40px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 1280px; margin: 0 auto; }
+button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; text-align: left; }
+a { color: inherit; }
+:focus-visible { outline: 2px solid var(--fg); outline-offset: 3px; }
+
+/* nav */
+.nav { display: grid; grid-template-columns: 1fr auto 1fr; gap: 12px; font-size: 12px; line-height: 1.35; align-items: start; }
+.nav nav { display: flex; flex-direction: column; }
+.nav .r { text-align: right; }
+.nav a, .nav button { text-decoration: none; }
+.nav a:hover, .nav button:hover { text-decoration: underline; text-underline-offset: 3px; }
+
+/* wordmark */
+.mark { margin: clamp(28px, 7vw, 72px) 0 clamp(10px, 2vw, 18px); overflow: hidden; }
+.mark h1 { margin: 0; font-weight: 800; letter-spacing: -.045em; line-height: 1; white-space: nowrap; font-size: 15vw; }
+.mark h1 span { display: inline-block; }
+.mark .ch { opacity: 0; transform: translateY(32%); animation: letter .8s cubic-bezier(.2,.8,.2,1) forwards; animation-delay: calc(var(--n) * 45ms); }
+@keyframes letter { to { opacity: 1; transform: none; } }
+
+/* search */
+.search { position: relative; display: flex; align-items: baseline; gap: 14px; border-bottom: 1px solid var(--fg); padding-bottom: 8px; margin-bottom: 22px; }
+.search label { font-size: 12px; flex: none; }
+#q { flex: 1; min-width: 0; background: transparent; border: 0; color: var(--fg); font: inherit; font-weight: 500; font-size: clamp(20px, 3.4vw, 34px); letter-spacing: -.02em; padding: 2px 0; }
+#q:focus { outline: none; }
+#q::placeholder { color: var(--muted); }
+.search:focus-within { border-bottom-width: 2px; margin-bottom: 21px; }
+.go { font-size: 12px; flex: none; }
+.go:hover { text-decoration: underline; text-underline-offset: 3px; }
+.list { position: absolute; left: 0; right: 0; top: calc(100% + 6px); z-index: 30; list-style: none; margin: 0; padding: 0; background: var(--bg); border: 1px solid var(--fg); animation: drop .16s ease-out; }
+@keyframes drop { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+.list li { display: flex; gap: 14px; align-items: baseline; padding: 11px 14px; cursor: pointer; border-bottom: 1px solid var(--line); }
+.list li:last-child { border-bottom: 0; }
+.list li[aria-selected="true"], .list li:hover { background: var(--fg); color: var(--bg); }
+.list .n { font-size: 12px; opacity: .6; width: 28px; flex: none; font-variant-numeric: tabular-nums; }
+.list .g { margin-left: auto; font-size: 12px; opacity: .7; white-space: nowrap; }
+.list .none { cursor: default; color: var(--muted); }
+.list .none:hover { background: transparent; color: var(--muted); }
+
+/* captions + hero */
+.caps { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; font-size: 11px; margin-bottom: 6px; }
+.caps div { display: flex; justify-content: space-between; gap: 12px; }
+.art { position: relative; isolation: isolate; overflow: hidden; background: var(--bg-art); }
+.hero { aspect-ratio: 16 / 7.5; }
+.hero.reveal { animation: wipe .9s cubic-bezier(.7,0,.2,1); }
+@keyframes wipe { from { clip-path: inset(0 0 100% 0); } to { clip-path: inset(0 0 0 0); } }
+.art::before { content: ""; position: absolute; inset: -20%; background: repeating-radial-gradient(circle at var(--cx) var(--cy), transparent 0 22px, rgba(255,255,255,.22) 22px 23px); }
+.hero.reveal::before { animation: drift 14s ease-in-out infinite alternate; }
+@keyframes drift { from { transform: scale(1); } to { transform: scale(1.12) translate(-1.5%, 1%); } }
+.glyph { position: absolute; left: clamp(14px, 2.4vw, 32px); top: clamp(8px, 1.6vw, 20px); font-weight: 800; letter-spacing: -.05em; line-height: 1; font-size: clamp(54px, 15vw, 190px); color: #fff; mix-blend-mode: difference; }
+.pin { position: absolute; font-size: 11px; color: #fff; mix-blend-mode: difference; font-variant-numeric: tabular-nums; }
+.pin.a { left: 12px; bottom: 10px; }
+.pin.b { right: 18%; top: 54%; }
+.pin.b::before { content: ""; display: inline-block; width: 7px; height: 7px; background: #fff; border-radius: 50%; margin-right: 6px; animation: pulse 2s ease-in-out infinite; }
+@keyframes pulse { 50% { transform: scale(1.7); opacity: .5; } }
+
+/* sections */
+.sec { margin-top: clamp(40px, 7vw, 88px); }
+.lab { font-size: 12px; margin: 0 0 10px; }
+.statement { font-weight: 700; letter-spacing: -.03em; line-height: 1.1; font-size: clamp(26px, 4.6vw, 54px); margin: 0; max-width: 20ch; text-wrap: balance; }
+.about { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: clamp(28px, 5vw, 56px); align-items: end; }
+.about .thumb { width: min(190px, 46%); }
+.about p { margin: 0; font-size: 13px; max-width: 46ch; padding-left: 22px; position: relative; }
+.about p::before { content: ""; position: absolute; left: 0; top: .42em; width: 9px; height: 9px; background: var(--fg); border-radius: 50%; }
+.more { display: inline-block; margin-top: 14px; font-weight: 700; font-size: 12px; }
+.more:hover { text-decoration: underline; text-underline-offset: 3px; }
+.thumb { text-align: left; display: block; }
+.thumb .art { aspect-ratio: 4 / 5; }
+.thumb small { display: block; font-size: 11px; margin-top: 6px; color: var(--muted); }
+
+.cols { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(24px, 5vw, 72px); }
+.rows { margin: 0; padding: 0; list-style: none; border-top: 1px solid var(--fg); }
+.rows li { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+.rows .v { font-weight: 700; font-variant-numeric: tabular-nums; text-align: right; }
+.bars { display: flex; gap: 4px; }
+.bar { width: 28px; height: 6px; background: var(--line); position: relative; overflow: hidden; }
+.bar.on::after { content: ""; position: absolute; inset: 0; background: var(--fg); transform: scaleX(0); transform-origin: left; transition: transform .5s cubic-bezier(.2,.8,.2,1); transition-delay: calc(var(--i) * 80ms + 250ms); }
+.in .bar.on::after { transform: scaleX(1); }
+
+.sims { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--fg); }
+.sims button { display: grid; grid-template-columns: 56px minmax(0, 1fr) auto; gap: 16px; align-items: baseline; width: 100%; padding: 16px 0; border-bottom: 1px solid var(--line); transition: padding .25s; }
+.sims button:hover { padding-left: 14px; background: var(--fg); color: var(--bg); }
+.sims .n { font-size: 12px; opacity: .6; }
+.sims b { font-size: clamp(18px, 2.6vw, 28px); letter-spacing: -.02em; font-weight: 700; }
+.sims em { font-style: normal; font-size: 13px; color: inherit; opacity: .75; display: block; margin-top: 2px; }
+.sims .go2 { font-size: 18px; }
+
+.head { display: flex; justify-content: space-between; align-items: end; gap: 16px; margin-bottom: 16px; flex-wrap: wrap; }
+.head h2 { margin: 0; font-weight: 800; letter-spacing: -.05em; line-height: .95; font-size: clamp(44px, 9vw, 112px); }
+.head span { font-size: 12px; }
+.grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; row-gap: 22px; }
+.tile { display: block; width: 100%; }
+.tile .art { aspect-ratio: 4 / 5; }
+.tile .art::before { transition: transform .8s cubic-bezier(.2,.8,.2,1); }
+.tile:hover .art::before { transform: scale(1.25); }
+.tile .g2 { position: absolute; left: 10px; top: 8px; font-weight: 800; letter-spacing: -.05em; font-size: clamp(30px, 5vw, 56px); line-height: 1; color: #fff; mix-blend-mode: difference; }
+.tile .cap { display: flex; justify-content: space-between; gap: 8px; margin-top: 8px; font-size: 12px; }
+.tile .cap b { font-weight: 500; }
+.tile .sub { font-size: 11px; color: var(--muted); }
+.tile[aria-current="true"] .cap b { text-decoration: underline; text-underline-offset: 3px; }
+.tile.rv { animation: up .6s cubic-bezier(.2,.8,.2,1) both; animation-delay: calc(var(--n) * 50ms); }
+@keyframes up { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+
+.empty { border-top: 1px solid var(--fg); border-bottom: 1px solid var(--line); padding: 48px 0; }
+.empty .statement { max-width: 24ch; }
+.empty p { color: var(--muted); max-width: 52ch; margin: 14px 0 0; }
+
+.foot { margin-top: clamp(48px, 8vw, 100px); border-top: 1px solid var(--fg); padding-top: 12px; display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; font-size: 12px; }
+.foot p { margin: 0; max-width: 60ch; }
+
+@media (max-width: 820px) {
+  .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .cols, .about { grid-template-columns: minmax(0, 1fr); }
+  .hero { aspect-ratio: 4 / 3.4; }
+  .caps { grid-template-columns: 1fr; gap: 2px; }
+  .nav { grid-template-columns: 1fr 1fr; }
+  .nav nav { grid-column: 1 / -1; order: 3; flex-direction: row; gap: 14px; }
+  .sims button { grid-template-columns: 34px minmax(0, 1fr) auto; gap: 10px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+  .mark .ch { opacity: 1; transform: none; }
+  .bar.on::after { transform: scaleX(1); }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="nav">
+    <div><button type="button" id="focusSearch">поиск</button></div>
+    <nav aria-label="Разделы">
+      <a href="#catalog">игры</a>
+      <a href="#similar">подборки</a>
+      <a href="#about">о нас</a>
+    </nav>
+    <div class="r">прототип [v1]</div>
+  </header>
+
+  <div class="mark"><h1 id="word" aria-label="Путеводник"></h1></div>
+
+  <div class="search">
+    <label for="q">поиск</label>
+    <input id="q" type="text" autocomplete="off" spellcheck="false" role="combobox" aria-expanded="false" aria-controls="list" aria-autocomplete="list" placeholder="название игры, например the last of us">
+    <button class="go" id="go" type="button">найти →</button>
+    <ul class="list" id="list" role="listbox" hidden></ul>
+  </div>
+
+  <main id="out" aria-live="polite"></main>
+
+  <section class="sec" id="catalog">
+    <div class="head"><h2>В базе</h2><span id="count"></span></div>
+    <div class="grid" id="grid"></div>
+  </section>
+
+  <footer class="foot" id="about">
+    <p>Путеводник помогает выбрать игру по настроению и не тратить вечер на поиски.</p>
+    <p>Тестовые данные: цифры приблизительные, оценки субъективные.</p>
+  </footer>
+</div>
+
+<script>
+(function () {
+  var GAMES = [
+    { id: 'tlou', title: 'The Last of Us Part I', short: 'The Last of Us', alias: ['ласт оф ас', 'зе ласт оф ас', 'last of us', 'tlou', 'одни из нас'], year: '2013, ремейк 2022', genre: 'экшен-приключение', plat: 'PlayStation 5, ПК', glyph: 'TLOU', main: 15, full: 25, tone: [6, 30], c: [78, 88],
+      mood: { 'напряжение': 4, 'тяжесть': 5, 'темп': 3, 'сложность': 3 },
+      yes: 'Любишь кинематографичные истории про людей, а не просто перестрелки.',
+      no: 'Хочешь расслабиться после работы: настроение у игры тяжёлое и остаётся таким до финала.',
+      sim: [{ id: 'disco', why: 'Тоже сюжет, который давит и запоминается надолго.' }, { id: 'elden', why: 'Мир, где всё держится на атмосфере и опасности.' }] },
+    { id: 'hk', title: 'Hollow Knight', short: 'Hollow Knight', alias: ['холлоу найт', 'полый рыцарь', 'hk'], year: '2017', genre: 'метроидвания', plat: 'ПК, консоли', glyph: 'HK', main: 27, full: 65, tone: [8, 36], c: [22, 70],
+      mood: { 'напряжение': 3, 'тяжесть': 3, 'темп': 3, 'сложность': 5 },
+      yes: 'Нравится исследовать мир без подсказок и побеждать боссов с десятой попытки.',
+      no: 'Не любишь, когда игра не объясняет, куда идти и что делать.',
+      sim: [{ id: 'hades', why: 'Быстрые бои и честная сложность, но с короткими заходами.' }, { id: 'elden', why: 'Та же школа: не объясняют, но наказывают честно.' }] },
+    { id: 'bg3', title: "Baldur's Gate 3", short: "Baldur's Gate 3", alias: ['балдурс гейт', 'балдурс гейт 3', 'бг3', 'bg3', 'baldurs gate'], year: '2023', genre: 'ролевая игра (crpg)', plat: 'ПК, PlayStation 5, Xbox Series', glyph: 'BG3', main: 75, full: 170, tone: [70, 92], c: [30, 20],
+      mood: { 'напряжение': 2, 'тяжесть': 2, 'темп': 2, 'сложность': 3 },
+      yes: 'Любишь настольные ролёвки и свободу выбора, когда каждое решение что-то меняет.',
+      no: 'Мало свободного времени: одно прохождение растягивается на месяцы вечеров.',
+      sim: [{ id: 'disco', why: 'Диалоги и последствия решают больше, чем бои.' }, { id: 'elden', why: 'Огромный мир, который можно изучать в своём порядке.' }] },
+    { id: 'sdv', title: 'Stardew Valley', short: 'Stardew Valley', alias: ['стардью валли', 'стардью', 'ферма', 'sdv'], year: '2016', genre: 'симулятор фермы', plat: 'ПК, консоли, мобильные', glyph: 'SV', main: 50, full: 150, tone: [12, 40], c: [60, 80],
+      mood: { 'напряжение': 1, 'тяжесть': 1, 'темп': 1, 'сложность': 1 },
+      yes: 'Хочешь тихую игру на вечер без спешки и штрафов.',
+      no: 'Нужен драйв и сюжет с напряжением: здесь его почти нет.',
+      sim: [{ id: 'portal', why: 'Неспешный темп, где награда идёт за любопытство, а не за скорость.' }] },
+    { id: 'elden', title: 'Elden Ring', short: 'Elden Ring', alias: ['элден ринг', 'эльден ринг', 'elden', 'er'], year: '2022', genre: 'action rpg, открытый мир', plat: 'ПК, PlayStation, Xbox', glyph: 'ER', main: 60, full: 135, tone: [78, 94], c: [85, 30],
+      mood: { 'напряжение': 4, 'тяжесть': 3, 'темп': 3, 'сложность': 5 },
+      yes: 'Нравится открытый мир, где ты сам решаешь, куда идти, и готов страдать ради победы.',
+      no: 'Хочешь чёткую подсказку «иди туда»: игра её не даст.',
+      sim: [{ id: 'hk', why: 'Тот же дух исследования и боссов, только в двух измерениях.' }, { id: 'hades', why: 'Сложность ради азарта, но без долгих пробежек.' }] },
+    { id: 'disco', title: 'Disco Elysium', short: 'Disco Elysium', alias: ['диско элизиум', 'диско', 'disco'], year: '2019', genre: 'детективная rpg', plat: 'ПК, консоли', glyph: 'DE', main: 25, full: 40, tone: [10, 34], c: [40, 60],
+      mood: { 'напряжение': 2, 'тяжесть': 4, 'темп': 2, 'сложность': 2 },
+      yes: 'Любишь читать и разговаривать, а не стрелять.',
+      no: 'Хочешь экшена: почти всё здесь решают диалоги и проверки навыков.',
+      sim: [{ id: 'bg3', why: 'Тоже игра про выбор и последствия, только с боями.' }, { id: 'tlou', why: 'Такая же тяжёлая история про людей.' }] },
+    { id: 'hades', title: 'Hades', short: 'Hades', alias: ['хадес', 'аид'], year: '2020', genre: 'рогалик', plat: 'ПК, консоли', glyph: 'H', main: 22, full: 95, tone: [4, 24], c: [15, 85],
+      mood: { 'напряжение': 3, 'тяжесть': 1, 'темп': 5, 'сложность': 3 },
+      yes: 'Нужны короткие заходы по полчаса и желание «ещё один забег».',
+      no: 'Не любишь повторяющиеся забеги: игра строится именно на них.',
+      sim: [{ id: 'hk', why: 'Быстрые бои, которые учат тебя на ошибках.' }, { id: 'elden', why: 'Сложные боссы, но с более длинным путём между ними.' }] },
+    { id: 'portal', title: 'Portal 2', short: 'Portal 2', alias: ['портал 2', 'портал', 'portal'], year: '2011', genre: 'головоломка', plat: 'ПК, консоли', glyph: 'P2', main: 8, full: 13, tone: [72, 90], c: [70, 45],
+      mood: { 'напряжение': 2, 'тяжесть': 1, 'темп': 3, 'сложность': 3 },
+      yes: 'Хочешь игру на пару вечеров и с хорошим юмором.',
+      no: 'Нужна большая игра на сотню часов.',
+      sim: [{ id: 'sdv', why: 'Игра, в которую заходят отдохнуть головой.' }, { id: 'disco', why: 'Много текста и характерных голосов.' }] }
+  ];
+  var BY = {}; GAMES.forEach(function (g, i) { g.i = i; BY[g.id] = g; });
+
+  var q = document.getElementById('q'), list = document.getElementById('list'), out = document.getElementById('out'),
+      grid = document.getElementById('grid'), go = document.getElementById('go'), word = document.getElementById('word');
+  var matches = [], active = -1, current = null;
+
+  function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function norm(s) { return String(s).toLowerCase().replace(/ё/g, 'е').replace(/[^a-zа-я0-9 ]/g, ' ').replace(/\s+/g, ' ').trim(); }
+  function pad(n) { return ('00' + n).slice(-3); }
+  function artStyle(g) {
+    return '--bg-art: linear-gradient(160deg, hsl(0 0% ' + g.tone[0] + '%), hsl(0 0% ' + g.tone[1] + '%)); --cx:' + g.c[0] + '%; --cy:' + g.c[1] + '%';
+  }
+  function evenings(h) { return Math.max(1, Math.ceil(h / 2)); }
+  function plural(n) { var a = n % 10, b = n % 100; return a === 1 && b !== 11 ? 'вечер' : (a >= 2 && a <= 4 && (b < 12 || b > 14)) ? 'вечера' : 'вечеров'; }
+
+  /* wordmark: letters + fit to width */
+  var WORD = 'путеводник';
+  word.innerHTML = '<span id="wi">' + WORD.split('').map(function (c, n) { return '<span class="ch" style="--n:' + n + '">' + c + '</span>'; }).join('') + '</span>';
+  function fit() {
+    var wi = document.getElementById('wi'), box = word.parentNode;
+    word.style.fontSize = '100px';
+    var w = wi.getBoundingClientRect().width;
+    if (w > 0) word.style.fontSize = (100 * box.clientWidth / w * 0.995) + 'px';
+  }
+  fit();
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
+  window.addEventListener('resize', fit);
+
+  function find(text) {
+    var n = norm(text);
+    if (!n) return GAMES.slice();
+    return GAMES.filter(function (g) { return [g.title].concat(g.alias).some(function (name) { return norm(name).indexOf(n) !== -1; }); });
+  }
+
+  function renderList() {
+    if (!matches.length) list.innerHTML = '<li class="none">такой игры нет в тестовой базе</li>';
+    else list.innerHTML = matches.map(function (g, i) {
+      return '<li role="option" id="opt' + i + '" data-id="' + g.id + '" aria-selected="' + (i === active) + '"><span class="n">' + pad(g.i + 1) + '</span><span>' + esc(g.title) + '</span><span class="g">' + esc(g.genre.split(',')[0]) + '</span></li>';
+    }).join('');
+    list.hidden = false; q.setAttribute('aria-expanded', 'true');
+  }
+  function closeList() { list.hidden = true; q.setAttribute('aria-expanded', 'false'); active = -1; q.removeAttribute('aria-activedescendant'); }
+
+  function renderGrid(first) {
+    document.getElementById('count').textContent = 'тестовых игр: ' + GAMES.length;
+    grid.innerHTML = GAMES.map(function (g) {
+      return '<button type="button" class="tile' + (first ? ' rv' : '') + '" style="--n:' + g.i + '" data-id="' + g.id + '"' + (current && current.id === g.id ? ' aria-current="true"' : '') + '>' +
+        '<div class="art" style="' + artStyle(g) + '"><span class="g2">' + esc(g.glyph) + '</span></div>' +
+        '<div class="cap"><b>' + esc(g.short) + '</b><span>~' + g.main + ' ч</span></div><div class="sub">' + esc(g.genre.split(',')[0]) + '</div></button>';
+    }).join('');
+  }
+
+  function renderCard(g) {
+    var s0 = BY[g.sim[0].id];
+    var moods = Object.keys(g.mood).map(function (k) {
+      var b = ''; for (var i = 0; i < 5; i++) b += '<span class="bar' + (i < g.mood[k] ? ' on' : '') + '" style="--i:' + i + '"></span>';
+      return '<li><span>' + k + '</span><span class="bars" role="img" aria-label="' + g.mood[k] + ' из 5">' + b + '</span></li>';
+    }).join('');
+    var ev = evenings(g.main);
+    var sims = g.sim.map(function (s, n) {
+      var t = BY[s.id];
+      return '<li><button type="button" data-id="' + t.id + '"><span class="n">' + pad(t.i + 1) + '</span><span><b>' + esc(t.title) + '</b><em>' + esc(s.why) + '</em></span><span class="go2">→</span></button></li>';
+    }).join('');
+
+    out.innerHTML =
+      '<div class="caps"><div><span>' + pad(g.i + 1) + ' · ' + esc(g.title.toLowerCase()) + '</span><span>' + esc(g.year) + '</span></div>' +
+        '<div><span>' + pad(g.i + 2 > GAMES.length ? 1 : g.i + 2) + ' · основной сюжет</span><span>~' + g.main + ' ч</span></div></div>' +
+      '<div class="art hero reveal" style="' + artStyle(g) + '"><span class="glyph">' + esc(g.glyph) + '</span><span class="pin a">' + pad(g.i + 1) + '</span><span class="pin b">' + pad(g.i + 2 > GAMES.length ? 1 : g.i + 2) + '</span></div>' +
+
+      '<section class="sec"><p class="lab">( зайдёт, если )</p><h2 class="statement">' + esc(g.yes) + '</h2>' +
+        '<div class="about"><button type="button" class="thumb" data-id="' + s0.id + '"><div class="art" style="' + artStyle(s0) + '"><span class="g2" style="position:absolute;left:8px;top:6px;font-weight:800;letter-spacing:-.05em;font-size:30px;line-height:1;color:#fff;mix-blend-mode:difference">' + esc(s0.glyph) + '</span></div><small>похожая · ' + esc(s0.short.toLowerCase()) + '</small></button>' +
+        '<div><p><b>Не зайдёт, если:</b> ' + esc(g.no.charAt(0).toLowerCase() + g.no.slice(1)) + '</p><button type="button" class="more" data-id="' + s0.id + '">перейти к ' + esc(s0.short.toLowerCase()) + ' →</button></div></div></section>' +
+
+      '<section class="sec cols" id="route"><div><p class="lab">( маршрут )</p><ul class="rows">' +
+          '<li><span>основной сюжет</span><span class="v">~' + g.main + ' ч</span></li>' +
+          '<li><span>на 100%</span><span class="v">~' + g.full + ' ч</span></li>' +
+          '<li><span>по 2 часа в день</span><span class="v">~' + ev + ' ' + plural(ev) + '</span></li>' +
+          '<li><span>жанр</span><span class="v">' + esc(g.genre) + '</span></li>' +
+          '<li><span>платформы</span><span class="v">' + esc(g.plat) + '</span></li>' +
+          '<li><span>цены и скидки</span><span class="v" style="font-weight:400;color:var(--muted)">скоро</span></li></ul></div>' +
+        '<div><p class="lab">( настроение )</p><ul class="rows" id="moods">' + moods + '</ul></div></section>' +
+
+      '<section class="sec" id="similar"><p class="lab">( похожие по ощущению )</p><ul class="sims">' + sims + '</ul></section>';
+
+    var m = document.getElementById('route');
+    requestAnimationFrame(function () { requestAnimationFrame(function () { m.classList.add('in'); }); });
+  }
+
+  function renderEmpty(text) {
+    out.innerHTML = '<section class="sec empty"><p class="lab">( ничего не найдено )</p><h2 class="statement">«' + esc(text) + '» пока нет в базе</h2>' +
+      '<p>Сейчас здесь ' + GAMES.length + ' тестовых игр, они ниже. Остальные подтянутся из API, когда мы его подключим.</p></section>';
+  }
+
+  function select(id, scroll) {
+    var g = BY[id]; if (!g) return;
+    current = g; q.value = g.title; closeList(); renderGrid(false); renderCard(g);
+    if (scroll) window.scrollTo({ top: Math.max(0, document.getElementById('out').getBoundingClientRect().top + window.scrollY - 70), behavior: 'smooth' });
+  }
+  function submit() {
+    var found = find(q.value);
+    if (found.length) select((active >= 0 && matches[active] ? matches[active] : found[0]).id);
+    else { current = null; closeList(); renderGrid(false); renderEmpty(q.value.trim()); }
+  }
+
+  q.addEventListener('input', function () { matches = find(q.value); active = -1; renderList(); });
+  q.addEventListener('focus', function () { matches = find(current && q.value === current.title ? '' : q.value); renderList(); q.select(); });
+  q.addEventListener('keydown', function (e) {
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (list.hidden) { matches = find(q.value); renderList(); }
+      if (!matches.length) return;
+      active = e.key === 'ArrowDown' ? (active + 1) % matches.length : (active - 1 + matches.length) % matches.length;
+      renderList(); q.setAttribute('aria-activedescendant', 'opt' + active);
+    } else if (e.key === 'Enter') { e.preventDefault(); submit(); }
+    else if (e.key === 'Escape') closeList();
+  });
+  go.addEventListener('click', submit);
+  document.getElementById('focusSearch').addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); q.focus(); });
+  list.addEventListener('mousedown', function (e) { var li = e.target.closest('li[data-id]'); if (li) { e.preventDefault(); select(li.getAttribute('data-id')); } });
+  document.addEventListener('click', function (e) {
+    if (!e.target.closest('.search')) closeList();
+    var b = e.target.closest('button[data-id]');
+    if (b) select(b.getAttribute('data-id'), true);
+  });
+
+  current = BY['tlou'];
+  renderGrid(true);
+  renderCard(current);
+  q.value = current.title;
+})();
+</script>
+</body>
+</html>
