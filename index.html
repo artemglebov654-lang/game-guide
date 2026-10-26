@@ -316,6 +316,7 @@ a { color: inherit; }
 
   var q = document.getElementById('q'), list = document.getElementById('list'), out = document.getElementById('out'),
       grid = document.getElementById('grid'), go = document.getElementById('go'), word = document.getElementById('word');
+  var PRE = { games: {}, curated: {}, catalog: null }; /* заранее собранные данные из data.json */
   var matches = [], items = [], active = -1, current = null, openToken = 0, seq = 0, timer = null;
   var remote = { q: '', status: 'idle', list: [] };
 
@@ -413,6 +414,7 @@ a { color: inherit; }
     return results[0];
   }
   function resolve(g) {
+    if (!g.rawg && PRE.games[g.id]) g.rawg = PRE.games[g.id];
     if (g.rawg) return Promise.resolve(g.rawg);
     var c = cget('r:' + g.id);
     if (c && c.id) { g.rawg = c; return Promise.resolve(c); }
@@ -728,7 +730,7 @@ a { color: inherit; }
     markCurrent();
   }
   function curated(key) {
-    var c = cget('c:' + key);
+    var c = (PRE.curated[key] && PRE.curated[key].length) ? PRE.curated[key] : cget('c:' + key);
     if (c && c.length) return Promise.resolve(c);
     return Promise.all(CUR[key].map(function (name) {
       return jget('/games', { search: name, search_precise: 'true', page_size: 5 }).then(function (d) {
@@ -745,10 +747,11 @@ a { color: inherit; }
     if (cat.tab !== 'all' || cat.loading || cat.done) return;
     var tok = cat.tok;
     cat.loading = true; loadBtn.hidden = false; loadBtn.textContent = 'загружаю…';
-    jget('/games', { ordering: '-added', page_size: 24, page: cat.page + 1 }).then(function (d) {
+    var pre = cat.page === 0 && PRE.catalog && PRE.catalog.length;
+    (pre ? Promise.resolve({ results: PRE.catalog, next: true, pre: true }) : jget('/games', { ordering: '-added', page_size: 24, page: cat.page + 1 })).then(function (d) {
       if (tok !== cat.tok) return;
       cat.page++;
-      appendTiles((d.results || []).map(slim));
+      appendTiles(d.pre ? d.results : (d.results || []).map(slim));
       if (!d.next) { cat.done = true; loadBtn.hidden = true; } else loadBtn.textContent = 'показать ещё →';
     }).catch(function () {
       if (tok === cat.tok) { loadBtn.hidden = false; loadBtn.textContent = 'RAWG не отвечает, повторить →'; }
@@ -850,9 +853,13 @@ a { color: inherit; }
   });
 
   /* ---------- boot ---------- */
-  renderHome(true);
-  GAMES.forEach(function (g) { resolve(g).then(function () { applyImg(g); }); });
-  showTab('all');
+  fetch('data.json').then(function (r) { return r.ok ? r.json() : null; }).then(function (d) {
+    if (d) { PRE.games = d.games || {}; PRE.curated = d.curated || {}; PRE.catalog = d.catalog || null; }
+  }).catch(function () { /* без data.json работаем напрямую через RAWG */ }).then(function () {
+    renderHome(true);
+    GAMES.forEach(function (g) { resolve(g).then(function () { applyImg(g); }); });
+    showTab('all');
+  });
 })();
 </script>
 </body>
