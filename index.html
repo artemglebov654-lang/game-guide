@@ -158,6 +158,11 @@ a { color: inherit; }
 .loadmore { display: block; margin: 28px auto 0; font-size: 13px; border: 1px solid var(--fg); border-radius: 999px; padding: 12px 24px; text-align: center; transition: background .2s, color .2s; }
 .loadmore:hover { background: var(--fg); color: var(--bg); }
 
+.tabs { display: flex; flex-wrap: wrap; gap: 6px 24px; margin: 0 0 22px; border-bottom: 1px solid var(--line); }
+.tabs button { font-size: 14px; color: var(--muted); padding: 6px 0 10px; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: color .2s, border-color .2s; }
+.tabs button:hover { color: var(--fg); }
+.tabs button[aria-selected="true"] { color: var(--fg); border-bottom-color: var(--fg); }
+
 @media (max-width: 820px) {
   .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .cols, .about { grid-template-columns: minmax(0, 1fr); }
@@ -180,7 +185,7 @@ a { color: inherit; }
     <div><button type="button" id="focusSearch">поиск</button></div>
     <nav aria-label="Разделы">
       <a href="#catalog">игры</a>
-      <a href="#similar">подборки</a>
+      <a href="#popular">популярно</a>
       <a href="#about">о нас</a>
     </nav>
     <div class="r">прототип [v1]</div>
@@ -200,7 +205,15 @@ a { color: inherit; }
   <section class="sec" id="catalog">
     <div class="head"><h2>В базе</h2></div>
     <div class="grid" id="grid"></div>
-    <p class="lab mt">( ещё из RAWG, по популярности )</p>
+  </section>
+
+  <section class="sec" id="popular">
+    <div class="head"><h2>Популярно</h2></div>
+    <div class="tabs" id="tabs" role="tablist" aria-label="Подборки">
+      <button type="button" role="tab" data-tab="all" aria-selected="true">всё популярное</button>
+      <button type="button" role="tab" data-tab="story" aria-selected="false">сюжетные</button>
+      <button type="button" role="tab" data-tab="comp" aria-selected="false">соревновательные</button>
+    </div>
     <div class="grid" id="grid2"></div>
     <button class="loadmore" id="loadMore" type="button" hidden>показать ещё →</button>
   </section>
@@ -616,9 +629,17 @@ a { color: inherit; }
     }).catch(function () { if (token === openToken) renderEmpty(text, true); });
   }
 
-  /* ---------- catalog from RAWG ---------- */
-  var grid2 = document.getElementById('grid2'), loadBtn = document.getElementById('loadMore');
-  var cat = { page: 0, loading: false, done: false };
+  /* ---------- popular: curated tabs + RAWG catalog ---------- */
+  var grid2 = document.getElementById('grid2'), loadBtn = document.getElementById('loadMore'), tabsEl = document.getElementById('tabs');
+  var cat = { tab: 'all', tok: 0, page: 0, loading: false, done: false };
+  var CUR = {
+    all: ['Counter-Strike 2', 'Dota 2', 'Grand Theft Auto V', 'The Witcher 3: Wild Hunt', 'Red Dead Redemption 2', 'Fortnite', 'VALORANT', 'Minecraft', 'Cyberpunk 2077', 'League of Legends', 'God of War 2018', 'Apex Legends'],
+    story: ['The Witcher 3: Wild Hunt', 'Red Dead Redemption 2', 'God of War 2018', 'Cyberpunk 2077', 'Horizon Zero Dawn', "Marvel's Spider-Man", 'Death Stranding', "Uncharted 4: A Thief's End", 'BioShock Infinite', 'Life is Strange', 'Detroit: Become Human', 'Mass Effect 2', 'Control', 'Metro Exodus', 'Ghost of Tsushima', 'Persona 5 Royal'],
+    comp: ['Counter-Strike 2', 'Dota 2', 'VALORANT', 'League of Legends', 'Fortnite', 'Apex Legends', 'Overwatch 2', 'Rocket League', 'PUBG: BATTLEGROUNDS', "Tom Clancy's Rainbow Six Siege", 'Call of Duty: Warzone', 'Team Fortress 2', 'Street Fighter 6']
+  };
+  function slim(r) {
+    return { id: r.id, name: r.name, released: r.released, background_image: r.background_image, genre: (r.genres && r.genres[0]) ? r.genres[0].name : '' };
+  }
   function markCurrent() {
     [].forEach.call(grid2.querySelectorAll('.rtile'), function (t) {
       if (current && current.id === 'rawg:' + t.getAttribute('data-rid')) t.setAttribute('aria-current', 'true');
@@ -626,31 +647,65 @@ a { color: inherit; }
     });
   }
   function rtile(r, n) {
-    var g0 = (r.genres && r.genres[0]) ? r.genres[0].name.toLowerCase() : '';
     return '<button type="button" class="tile rtile rv" style="--n:' + n + '" data-rid="' + r.id + '" data-name="' + esc(r.name) + '">' +
       '<div class="art" style="--bg-art: hsl(0 0% 14%); --cx:50%; --cy:50%"><span class="g2">' + esc(initials(r.name)) + '</span></div>' +
-      '<div class="cap"><b>' + esc(r.name) + '</b><span>' + esc(r.released ? r.released.slice(0, 4) : '') + '</span></div><div class="sub">' + esc(g0) + '</div></button>';
+      '<div class="cap"><b>' + esc(r.name) + '</b><span>' + esc(r.released ? r.released.slice(0, 4) : '') + '</span></div><div class="sub">' + esc((r.genre || '').toLowerCase()) + '</div></button>';
+  }
+  function appendTiles(list) {
+    var rids = GAMES.map(function (g) { return g.rawg && g.rawg.id; });
+    var names = GAMES.map(function (g) { return norm(g.title); });
+    var have = {};
+    [].forEach.call(grid2.querySelectorAll('.rtile'), function (t) { have[t.getAttribute('data-rid')] = 1; });
+    var res = list.filter(function (r) {
+      if (!r || !r.background_image || have[r.id] || rids.indexOf(r.id) !== -1 || names.indexOf(norm(r.name)) !== -1) return false;
+      have[r.id] = 1; return true;
+    });
+    grid2.insertAdjacentHTML('beforeend', res.map(function (r, i) { return rtile(r, i % 12); }).join(''));
+    res.forEach(function (r) {
+      putImg(grid2.querySelector('.rtile[data-rid="' + r.id + '"] .art'), sized(r.background_image, 600, 400), r.background_image, true);
+    });
+    markCurrent();
+  }
+  function curated(key) {
+    var c = cget('c:' + key);
+    if (c && c.length) return Promise.resolve(c);
+    return Promise.all(CUR[key].map(function (name) {
+      return jget('/games', { search: name, search_precise: 'true', page_size: 5 }).then(function (d) {
+        var r = pick(d.results || [], name);
+        return r ? slim(r) : null;
+      }).catch(function () { return null; });
+    })).then(function (arr) {
+      arr = arr.filter(Boolean);
+      if (arr.length) cset('c:' + key, arr);
+      return arr;
+    });
   }
   function loadCatalog() {
-    if (cat.loading || cat.done) return;
+    if (cat.tab !== 'all' || cat.loading || cat.done) return;
+    var tok = cat.tok;
     cat.loading = true; loadBtn.hidden = false; loadBtn.textContent = 'загружаю…';
     jget('/games', { ordering: '-added', page_size: 24, page: cat.page + 1 }).then(function (d) {
+      if (tok !== cat.tok) return;
       cat.page++;
-      var rids = GAMES.map(function (g) { return g.rawg && g.rawg.id; });
-      var names = GAMES.map(function (g) { return norm(g.title); });
-      var have = {};
-      [].forEach.call(grid2.querySelectorAll('.rtile'), function (t) { have[t.getAttribute('data-rid')] = 1; });
-      var res = (d.results || []).filter(function (r) {
-        return r.background_image && !have[r.id] && rids.indexOf(r.id) === -1 && names.indexOf(norm(r.name)) === -1;
-      });
-      grid2.insertAdjacentHTML('beforeend', res.map(function (r, i) { return rtile(r, i % 12); }).join(''));
-      res.forEach(function (r) {
-        putImg(grid2.querySelector('.rtile[data-rid="' + r.id + '"] .art'), sized(r.background_image, 600, 400), r.background_image, true);
-      });
-      markCurrent();
+      appendTiles((d.results || []).map(slim));
       if (!d.next) { cat.done = true; loadBtn.hidden = true; } else loadBtn.textContent = 'показать ещё →';
-    }).catch(function () { loadBtn.hidden = false; loadBtn.textContent = 'RAWG не отвечает, повторить →'; })
-      .then(function () { cat.loading = false; });
+    }).catch(function () {
+      if (tok === cat.tok) { loadBtn.hidden = false; loadBtn.textContent = 'RAWG не отвечает, повторить →'; }
+    }).then(function () { if (tok === cat.tok) cat.loading = false; });
+  }
+  function showTab(key) {
+    cat.tab = key; cat.page = 0; cat.done = false; cat.loading = false;
+    var tok = ++cat.tok;
+    [].forEach.call(tabsEl.querySelectorAll('button[data-tab]'), function (b) { b.setAttribute('aria-selected', String(b.getAttribute('data-tab') === key)); });
+    loadBtn.hidden = true;
+    grid2.innerHTML = '<p class="src">загружаю подборку…</p>';
+    curated(key).then(function (list) {
+      if (tok !== cat.tok) return;
+      grid2.innerHTML = '';
+      if (!list.length) { grid2.innerHTML = '<p class="src">Подборка не загрузилась, попробуй позже.</p>'; }
+      appendTiles(list);
+      if (key === 'all') loadCatalog();
+    });
   }
 
   /* ---------- events ---------- */
@@ -683,7 +738,11 @@ a { color: inherit; }
     var b = e.target.closest('button[data-id]');
     if (b) select(b.getAttribute('data-id'), true);
   });
-  loadBtn.addEventListener('click', loadCatalog);
+  loadBtn.addEventListener('click', function () { loadCatalog(); });
+  tabsEl.addEventListener('click', function (e) {
+    var b = e.target.closest('button[data-tab]');
+    if (b && b.getAttribute('data-tab') !== cat.tab) showTab(b.getAttribute('data-tab'));
+  });
 
   /* ---------- boot ---------- */
   current = BY['tlou'];
@@ -693,7 +752,7 @@ a { color: inherit; }
   q.value = current.title;
   loadExtra(current, bootToken);
   GAMES.forEach(function (g) { resolve(g).then(function () { applyImg(g); }); });
-  loadCatalog();
+  showTab('all');
 })();
 </script>
 </body>
