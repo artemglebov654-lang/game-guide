@@ -163,7 +163,23 @@ a { color: inherit; }
 .tabs button:hover { color: var(--fg); }
 .tabs button[aria-selected="true"] { color: var(--fg); border-bottom-color: var(--fg); }
 
+.intro { margin: 0 0 24px; max-width: 46ch; font-size: clamp(16px, 2.2vw, 20px); line-height: 1.4; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; margin: -6px 0 0; }
+.chips .m { color: var(--muted); }
+.chips button { text-decoration: underline; text-decoration-color: var(--line); text-underline-offset: 4px; transition: text-decoration-color .2s; }
+.chips button:hover { text-decoration-color: var(--fg); }
+.back { display: inline-block; font-size: 13px; margin: 4px 0 20px; }
+.back:hover { text-decoration: underline; text-underline-offset: 3px; }
+.feat { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: clamp(20px, 4vw, 48px); align-items: end; cursor: pointer; }
+.feat .art { aspect-ratio: 16 / 10; }
+.feat h2 { font-weight: 800; letter-spacing: -.04em; line-height: 1; font-size: clamp(30px, 5vw, 60px); margin: 0 0 16px; text-wrap: balance; }
+.feat p { margin: 0 0 14px; max-width: 38ch; font-size: 15px; }
+.feat .meta { font-size: 12px; color: var(--muted); margin-bottom: 14px; }
+.feat:hover h2 { text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 6px; }
+.feat:hover .art img { transform: scale(1.04); }
+
 @media (max-width: 820px) {
+  .feat { grid-template-columns: minmax(0, 1fr); }
   .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .cols, .about { grid-template-columns: minmax(0, 1fr); }
   .hero { aspect-ratio: 4 / 3.4; }
@@ -193,17 +209,21 @@ a { color: inherit; }
 
   <div class="mark"><h1 id="word" aria-label="Путеводник"></h1></div>
 
+  <p class="intro">Время прохождения, настроение, кому игра зайдёт и на что она похожа. Всё на одной странице.</p>
+
   <div class="search">
     <label for="q">поиск</label>
-    <input id="q" type="text" autocomplete="off" spellcheck="false" role="combobox" aria-expanded="false" aria-controls="list" aria-autocomplete="list" placeholder="название игры, например the last of us">
+    <input id="q" type="text" autocomplete="off" spellcheck="false" role="combobox" aria-expanded="false" aria-controls="list" aria-autocomplete="list" placeholder="название игры">
     <button class="go" id="go" type="button">найти →</button>
     <ul class="list" id="list" role="listbox" hidden></ul>
   </div>
 
-  <main id="out" aria-live="polite"></main>
+  <div id="home">
+    <div class="chips" id="chips"></div>
+    <section class="sec" id="banner"></section>
 
   <section class="sec" id="catalog">
-    <div class="head"><h2>В базе</h2></div>
+    <div class="head"><h2>В базе</h2><span>с нашими заметками</span></div>
     <div class="grid" id="grid"></div>
   </section>
 
@@ -217,6 +237,10 @@ a { color: inherit; }
     <div class="grid" id="grid2"></div>
     <button class="loadmore" id="loadMore" type="button" hidden>показать ещё →</button>
   </section>
+
+  </div>
+
+  <main id="out" aria-live="polite" hidden></main>
 
   <footer class="foot" id="about">
     <p>Путеводник помогает выбрать игру по настроению и не тратить вечер на поиски.</p>
@@ -378,6 +402,7 @@ a { color: inherit; }
     putImg(grid.querySelector('.tile[data-id="' + g.id + '"] .art'), sized(src, 600, 400), src, true);
     putImg(out.querySelector('.thumb[data-id="' + g.id + '"] .art'), sized(src, 600, 400), src, true);
     if (current && current.id === g.id) putImg(out.querySelector('.hero'), sized(src, 1280), src);
+    putImg(document.querySelector('#banner .art[data-gid="' + g.id + '"]'), sized(src, 1280), src);
   }
   function applyAll() { GAMES.forEach(applyImg); }
 
@@ -513,7 +538,7 @@ a { color: inherit; }
     }).join('');
     var nextN = g.i + 2 > GAMES.length ? 1 : g.i + 2;
 
-    out.innerHTML =
+    out.innerHTML = BACK +
       '<div class="caps"><div><span>' + pad(g.i + 1) + ' · ' + esc(g.title.toLowerCase()) + '</span><span>' + esc(g.year) + '</span></div>' +
         '<div><span>' + pad(nextN) + ' · основной сюжет</span><span>~' + g.main + ' ч</span></div></div>' +
       '<div class="art hero reveal" style="' + artStyle(g) + '"><span class="glyph">' + esc(g.glyph) + '</span></div>' +
@@ -556,7 +581,7 @@ a { color: inherit; }
     if (d.metacritic) rows.push(['metacritic', String(d.metacritic)]);
     if (d.rating) rows.push(['оценка игроков', d.rating + ' из 5']);
 
-    out.innerHTML =
+    out.innerHTML = BACK +
       '<div class="caps"><div><span>rawg · ' + esc(d.name.toLowerCase()) + '</span><span>' + esc(yr) + '</span></div>' +
         '<div><span>время прохождения</span><span>' + (d.playtime ? '~' + d.playtime + ' ч' : '—') + '</span></div></div>' +
       '<div class="art hero reveal" style="' + artStyle(pseudo) + '"><span class="glyph">' + esc(initials(d.name)) + '</span></div>' +
@@ -582,7 +607,7 @@ a { color: inherit; }
   }
 
   function renderEmpty(text, failed) {
-    out.innerHTML = '<section class="sec empty"><p class="lab">( ' + (failed ? 'не получилось' : 'ничего не найдено') + ' )</p><h2 class="statement">' +
+    out.innerHTML = BACK + '<section class="sec empty"><p class="lab">( ' + (failed ? 'не получилось' : 'ничего не найдено') + ' )</p><h2 class="statement">' +
       (failed ? 'RAWG сейчас не отвечает' : '«' + esc(text) + '» не нашлась') + '</h2>' +
       '<p>' + (failed ? 'Игры из нашей базы ниже работают как обычно. Попробуй ещё раз чуть позже.' : 'Попробуй написать название по-английски или чуть короче. Игры из нашей базы ниже.') + '</p></section>';
   }
@@ -591,14 +616,14 @@ a { color: inherit; }
   function select(id, scroll) {
     var g = BY[id]; if (!g) return;
     var token = ++openToken;
-    current = g; q.value = g.title; closeList(); renderGrid(false); markCurrent(); renderCard(g);
+    showGame(); current = g; q.value = g.title; closeList(); renderGrid(false); markCurrent(); renderCard(g);
     loadExtra(g, token);
     if (scroll) scrollToOut();
   }
   function selectRemote(rid, name, scroll) {
     var token = ++openToken;
-    current = { id: 'rawg:' + rid, title: name }; q.value = name; closeList(); renderGrid(false); markCurrent();
-    out.innerHTML = '<section class="sec empty"><p class="lab">( загружаю )</p><h2 class="statement">' + esc(name) + '</h2></section>';
+    showGame(); current = { id: 'rawg:' + rid, title: name }; q.value = name; closeList(); renderGrid(false); markCurrent();
+    out.innerHTML = BACK + '<section class="sec empty"><p class="lab">( загружаю )</p><h2 class="statement">' + esc(name) + '</h2></section>';
     Promise.all([
       jget('/games/' + rid),
       jget('/games/' + rid + '/screenshots', { page_size: 4 }).then(function (s) { return s.results || []; }).catch(function () { return []; })
@@ -620,8 +645,8 @@ a { color: inherit; }
     if (found.length) return select(found[0].id);
     if (remote.status === 'ok' && remote.list.length && remote.q === norm(text)) return pickItem({ kind: 'remote', r: remote.list[0] });
     var token = ++openToken;
-    closeList(); current = null; renderGrid(false); markCurrent();
-    out.innerHTML = '<section class="sec empty"><p class="lab">( ищу в rawg )</p><h2 class="statement">«' + esc(text) + '»</h2></section>';
+    showGame(); closeList(); current = null; renderGrid(false); markCurrent();
+    out.innerHTML = BACK + '<section class="sec empty"><p class="lab">( ищу в rawg )</p><h2 class="statement">«' + esc(text) + '»</h2></section>';
     jget('/games', { search: text, page_size: 1 }).then(function (d) {
       if (token !== openToken) return;
       var r = (d.results || [])[0];
@@ -708,6 +733,38 @@ a { color: inherit; }
     });
   }
 
+  /* ---------- home / game views ---------- */
+  var BACK = '<button type="button" class="back" data-back>← все игры</button>';
+  var view = 'home', homeEl = document.getElementById('home');
+  function lowerFirst(t) { return t.charAt(0).toLowerCase() + t.slice(1); }
+  function renderHome(first) {
+    var f = GAMES[Math.floor(Date.now() / 864e5) % GAMES.length];
+    document.getElementById('banner').innerHTML =
+      '<p class="lab">( советуем сегодня )</p>' +
+      '<div class="feat" role="button" tabindex="0" data-id="' + f.id + '">' +
+        '<div class="art" data-gid="' + f.id + '" style="' + artStyle(f) + '"><span class="glyph">' + esc(f.glyph) + '</span></div>' +
+        '<div><h2>' + esc(f.title) + '</h2><p><b>Зайдёт, если</b> ' + esc(lowerFirst(f.yes)) + '</p>' +
+        '<div class="meta">~' + f.main + ' ч · ' + esc(f.genre) + ' · ' + esc(f.year) + '</div>' +
+        '<span class="more">открыть карточку →</span></div></div>';
+    document.getElementById('chips').innerHTML = '<span class="m">например:</span>' +
+      ['tlou', 'hk', 'elden', 'disco', 'hades'].map(function (id) { return '<button type="button" data-id="' + id + '">' + esc(BY[id].short) + '</button>'; }).join('');
+    renderGrid(first);
+  }
+  function showGame() {
+    if (view !== 'game') { try { history.pushState({ v: 'game' }, '', '#game'); } catch (e) { /* без истории тоже работает */ } }
+    view = 'game'; homeEl.hidden = true; out.hidden = false;
+  }
+  function showHome() {
+    view = 'home'; out.hidden = true; homeEl.hidden = false; current = null; q.value = ''; closeList();
+    renderGrid(false); markCurrent(); window.scrollTo(0, 0);
+  }
+  function goHome() {
+    if (history.state && history.state.v === 'game') history.back(); else showHome();
+  }
+  window.addEventListener('popstate', function () {
+    if (view === 'game' && !(history.state && history.state.v === 'game')) showHome();
+  });
+
   /* ---------- events ---------- */
   q.addEventListener('input', function () { matches = find(q.value); active = -1; remoteSearch(q.value); renderList(); });
   q.addEventListener('focus', function () {
@@ -733,24 +790,29 @@ a { color: inherit; }
   });
   document.addEventListener('click', function (e) {
     if (!e.target.closest('.search')) closeList();
+    if (e.target.closest('[data-back]')) { goHome(); return; }
     var rt = e.target.closest('.rtile');
     if (rt) { selectRemote(+rt.getAttribute('data-rid'), rt.getAttribute('data-name'), true); return; }
-    var b = e.target.closest('button[data-id]');
+    var b = e.target.closest('button[data-id], .feat[data-id]');
     if (b) select(b.getAttribute('data-id'), true);
   });
   loadBtn.addEventListener('click', function () { loadCatalog(); });
+  document.getElementById('banner').addEventListener('keydown', function (e) {
+    var t = e.target.closest('.feat[data-id]');
+    if (t && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); select(t.getAttribute('data-id'), true); }
+  });
+  document.querySelector('.nav nav').addEventListener('click', function (e) {
+    var a = e.target.closest('a'); if (!a || view !== 'game') return;
+    e.preventDefault(); var id = a.getAttribute('href'); showHome();
+    setTimeout(function () { var t = document.querySelector(id); if (t) t.scrollIntoView({ behavior: 'smooth' }); }, 40);
+  });
   tabsEl.addEventListener('click', function (e) {
     var b = e.target.closest('button[data-tab]');
     if (b && b.getAttribute('data-tab') !== cat.tab) showTab(b.getAttribute('data-tab'));
   });
 
   /* ---------- boot ---------- */
-  current = BY['tlou'];
-  renderGrid(true);
-  var bootToken = ++openToken;
-  renderCard(current);
-  q.value = current.title;
-  loadExtra(current, bootToken);
+  renderHome(true);
   GAMES.forEach(function (g) { resolve(g).then(function () { applyImg(g); }); });
   showTab('all');
 })();
