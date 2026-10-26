@@ -303,12 +303,15 @@ a { color: inherit; }
     if (!art || !url || art.getAttribute('data-img')) return;
     art.setAttribute('data-img', '1');
     var im = new Image();
-    im.alt = ''; im.decoding = 'async'; if (lazy) im.loading = 'lazy';
-    im.onerror = function () { if (fallback && im.src !== fallback) im.src = fallback; };
-    im.onload = function () {
-      if (!im.parentNode) art.insertBefore(im, art.firstChild);
-      requestAnimationFrame(function () { im.classList.add('ok'); });
+    im.alt = ''; im.decoding = 'async'; im.referrerPolicy = 'no-referrer';
+    if (lazy) im.loading = 'lazy';
+    im.onerror = function () {
+      if (fallback && im.src !== fallback) im.src = fallback;
+      else if (im.parentNode) im.parentNode.removeChild(im);
     };
+    im.onload = function () { requestAnimationFrame(function () { im.classList.add('ok'); }); };
+    /* lazy-картинка вне страницы не начинает грузиться, поэтому вставляем сразу, прозрачной */
+    art.insertBefore(im, art.firstChild);
     im.src = url;
   }
 
