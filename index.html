@@ -180,6 +180,11 @@ a { color: inherit; }
 
 .orig { font: inherit; color: inherit; text-decoration: underline; text-underline-offset: 3px; }
 
+.video video { display: block; width: 100%; aspect-ratio: 16 / 9; max-height: 78vh; background: #000; }
+.video .src { margin: 12px 0 0; }
+.ytlink { display: inline-block; border: 1px solid var(--fg); border-radius: 999px; padding: 12px 22px; font-size: 13px; text-decoration: none; transition: background .2s, color .2s; }
+.ytlink:hover { background: var(--fg); color: var(--bg); }
+
 @media (max-width: 820px) {
   .feat { grid-template-columns: minmax(0, 1fr); }
   .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -467,10 +472,37 @@ a { color: inherit; }
     if (d && d.metacritic && rows) rows.insertAdjacentHTML('beforeend', '<li><span>metacritic</span><span class="v">' + esc(d.metacritic) + '</span></li>');
     if (shown) box.hidden = false;
   }
+  /* ---------- trailers (RAWG /movies, запасной вариант: поиск на YouTube) ---------- */
+  function ytUrl(name) { return 'https://www.youtube.com/results?search_query=' + encodeURIComponent(name + ' official trailer'); }
+  function videoBox(name) {
+    return '<section class="sec video" id="videoSec"><p class="lab">( трейлер )</p><div id="video">' +
+      '<a class="ytlink" href="' + ytUrl(name) + '" target="_blank" rel="noopener">найти трейлер на YouTube ↗</a></div></section>';
+  }
+  function loadVideo(rid, name, token) {
+    var c = cget('v:' + rid);
+    var p = c !== null ? Promise.resolve(c) : jget('/games/' + rid + '/movies').then(function (d) {
+      var m = (d.results || [])[0], src = m && m.data && (m.data['480'] || m.data.max);
+      var v = src ? { src: src, poster: m.preview || '' } : 0;
+      cset('v:' + rid, v);
+      return v;
+    });
+    p.then(function (v) {
+      var box = document.getElementById('video');
+      if (token !== openToken || !box) return;
+      if (!v) {
+        box.innerHTML = '<p class="src">В RAWG для этой игры нет трейлера.</p><a class="ytlink" href="' + ytUrl(name) + '" target="_blank" rel="noopener">найти трейлер на YouTube ↗</a>';
+        return;
+      }
+      box.innerHTML = '<video controls playsinline preload="none" poster="' + esc(v.poster) + '" src="' + esc(v.src) + '"></video>' +
+        '<p class="src">Трейлер: <a href="https://rawg.io" target="_blank" rel="noopener">RAWG</a> · <a href="' + ytUrl(name) + '" target="_blank" rel="noopener">другие видео на YouTube ↗</a></p>';
+    }).catch(function () { /* остаётся ссылка на YouTube */ });
+  }
+
   function loadExtra(g, token) {
     resolve(g).then(function (r) {
       if (!r || token !== openToken) return null;
       applyImg(g);
+      loadVideo(r.id, g.title, token);
       return Promise.all([
         jget('/games/' + r.id).catch(function () { return null; }),
         jget('/games/' + r.id + '/screenshots', { page_size: 4 }).then(function (s) { return s.results || []; }).catch(function () { return []; })
@@ -595,6 +627,8 @@ a { color: inherit; }
           '<li><span>цены и скидки</span><span class="v" style="font-weight:400;color:var(--muted)">скоро</span></li></ul></div>' +
         '<div><p class="lab">( настроение )</p><ul class="rows" id="moods">' + moods + '</ul></div></section>' +
 
+      videoBox(g.title) +
+
       EXTRA +
 
       '<section class="sec" id="similar"><p class="lab">( похожие по ощущению )</p><ul class="sims">' + sims + '</ul></section>';
@@ -630,10 +664,13 @@ a { color: inherit; }
       '<section class="sec"><p class="lab">( маршрут )</p><ul class="rows">' +
         rows.map(function (r) { return '<li><span>' + r[0] + '</span><span class="v">' + esc(r[1]) + '</span></li>'; }).join('') + '</ul></section>' +
 
+      videoBox(d.name) +
+
       '<section class="sec" id="extra" hidden><p class="lab">( кадры )</p><div id="shotsWrap"><div class="shots" id="shots"></div></div>' +
         '<p class="src">Данные и кадры: <a href="https://rawg.io" target="_blank" rel="noopener">RAWG</a></p></section>';
 
     putImg(out.querySelector('.hero'), sized(d.background_image, 1280), d.background_image);
+    loadVideo(d.id, d.name, openToken);
     if (d.description_raw) translateInto(document.getElementById('rdesc'), document.getElementById('rdescLang'), snip(d.description_raw, 400), 'd' + d.id);
     if (shots && shots.length) {
       var sh = document.getElementById('shots');
