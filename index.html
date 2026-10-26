@@ -178,6 +178,8 @@ a { color: inherit; }
 .feat:hover h2 { text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 6px; }
 .feat:hover .art img { transform: scale(1.04); }
 
+.orig { font: inherit; color: inherit; text-decoration: underline; text-underline-offset: 3px; }
+
 @media (max-width: 820px) {
   .feat { grid-template-columns: minmax(0, 1fr); }
   .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -356,6 +358,38 @@ a { color: inherit; }
   function cget(k) { try { return JSON.parse(localStorage.getItem('gg2:' + k)); } catch (e) { return null; } }
   function cset(k, v) { try { localStorage.setItem('gg2:' + k, JSON.stringify(v)); } catch (e) { /* без кэша тоже живём */ } }
 
+  /* Автоперевод описаний RAWG на русский (MyMemory). Если не получилось, остаётся английский оригинал. */
+  function translate(text, key) {
+    var c = cget('t:' + key);
+    if (c) return Promise.resolve(c);
+    var url = 'https://api.mymemory.translated.net/get?q=' + encodeURIComponent(text) + '&langpair=en|ru';
+    return fetch(url).then(function (r) { if (!r.ok) throw new Error('mm ' + r.status); return r.json(); }).then(function (d) {
+      var t = d && d.responseData && d.responseData.translatedText;
+      if (!t || Number(d.responseStatus) !== 200 || /MYMEMORY WARNING|INVALID|QUERY LENGTH/i.test(t)) throw new Error('mm limit');
+      var ta = document.createElement('textarea'); ta.innerHTML = t; t = ta.value;
+      cset('t:' + key, t);
+      return t;
+    });
+  }
+  function translateInto(p, langEl, en, key) {
+    if (!p || !langEl || !en) return;
+    translate(en, key).then(function (ru) {
+      p.textContent = ru;
+      p.setAttribute('data-en', en); p.setAttribute('data-ru', ru); p.setAttribute('data-mode', 'ru');
+      langEl.innerHTML = 'Перевод автоматический, <button type="button" class="orig" data-orig>показать оригинал</button>';
+    }).catch(function () {
+      langEl.textContent = 'Описание на английском, автоперевод сейчас недоступен';
+    });
+  }
+  function toggleOrig(btn) {
+    var sec = btn.closest('section'), p = sec && sec.querySelector('[data-ru]');
+    if (!p) return;
+    var toEn = p.getAttribute('data-mode') !== 'en';
+    p.textContent = toEn ? p.getAttribute('data-en') : p.getAttribute('data-ru');
+    p.setAttribute('data-mode', toEn ? 'en' : 'ru');
+    btn.textContent = toEn ? 'показать перевод' : 'показать оригинал';
+  }
+
   function putImg(art, url, fallback, lazy) {
     if (!art || !url || art.getAttribute('data-img')) return;
     art.setAttribute('data-img', '1');
@@ -418,9 +452,10 @@ a { color: inherit; }
       shown = true;
     } else { document.getElementById('shotsWrap').hidden = true; }
     if (d && d.description_raw) {
-      var p = document.getElementById('desc');
-      p.textContent = snip(d.description_raw, 520);
+      var p = document.getElementById('desc'), en = snip(d.description_raw, 400);
+      p.textContent = en;
       p.hidden = false; shown = true;
+      translateInto(p, document.getElementById('descLang'), en, 'd' + d.id);
     }
     if (d && d.slug) {
       var a = document.getElementById('rawgLink');
@@ -522,7 +557,7 @@ a { color: inherit; }
     '<section class="sec" id="extra" hidden><p class="lab">( кадры и описание )</p>' +
       '<div id="shotsWrap"><div class="shots" id="shots"></div></div>' +
       '<p class="desc" id="desc" hidden></p>' +
-      '<p class="src">Описание на английском, данные и кадры: <a href="https://rawg.io" target="_blank" rel="noopener">RAWG</a> · <a id="rawgLink" href="https://rawg.io" target="_blank" rel="noopener" hidden>страница игры ↗</a></p>' +
+      '<p class="src"><span id="descLang">Описание на английском</span>, данные и кадры: <a href="https://rawg.io" target="_blank" rel="noopener">RAWG</a> · <a id="rawgLink" href="https://rawg.io" target="_blank" rel="noopener" hidden>страница игры ↗</a></p>' +
     '</section>';
 
   function renderCard(g) {
@@ -587,7 +622,7 @@ a { color: inherit; }
       '<div class="art hero reveal" style="' + artStyle(pseudo) + '"><span class="glyph">' + esc(initials(d.name)) + '</span></div>' +
 
       '<section class="sec"><p class="lab">( авторская заметка )</p><h2 class="statement">Заметки «кому зайдёт» для этой игры у нас пока нет.</h2>' +
-        '<div class="about one"><div><p>' + (d.description_raw ? esc(snip(d.description_raw, 420)) : 'Описания нет.') + '</p><p class="src">Описание на английском, источник: RAWG</p>' +
+        '<div class="about one"><div><p id="rdesc">' + (d.description_raw ? esc(snip(d.description_raw, 400)) : 'Описания нет.') + '</p><p class="src"><span id="rdescLang">' + (d.description_raw ? 'Описание на английском' : 'Данные') + '</span>, источник: RAWG</p>' +
         '<a class="more" href="https://rawg.io/games/' + esc(d.slug) + '" target="_blank" rel="noopener">открыть на rawg ↗</a></div></div></section>' +
 
       '<section class="sec"><p class="lab">( маршрут )</p><ul class="rows">' +
@@ -597,6 +632,7 @@ a { color: inherit; }
         '<p class="src">Данные и кадры: <a href="https://rawg.io" target="_blank" rel="noopener">RAWG</a></p></section>';
 
     putImg(out.querySelector('.hero'), sized(d.background_image, 1280), d.background_image);
+    if (d.description_raw) translateInto(document.getElementById('rdesc'), document.getElementById('rdescLang'), snip(d.description_raw, 400), 'd' + d.id);
     if (shots && shots.length) {
       var sh = document.getElementById('shots');
       sh.innerHTML = shots.slice(0, 3).map(function () { return '<div class="art" style="--bg-art: hsl(0 0% 18%); --cx:50%; --cy:50%"></div>'; }).join('');
@@ -790,6 +826,8 @@ a { color: inherit; }
   });
   document.addEventListener('click', function (e) {
     if (!e.target.closest('.search')) closeList();
+    var ob = e.target.closest('[data-orig]');
+    if (ob) { toggleOrig(ob); return; }
     if (e.target.closest('[data-back]')) { goHome(); return; }
     var rt = e.target.closest('.rtile');
     if (rt) { selectRemote(+rt.getAttribute('data-rid'), rt.getAttribute('data-name'), true); return; }
