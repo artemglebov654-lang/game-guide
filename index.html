@@ -81,11 +81,6 @@ a { color: inherit; }
 .hero.reveal::before { animation: drift 14s ease-in-out infinite alternate; }
 @keyframes drift { from { transform: scale(1); } to { transform: scale(1.12) translate(-1.5%, 1%); } }
 .glyph { position: absolute; left: clamp(14px, 2.4vw, 32px); top: clamp(8px, 1.6vw, 20px); font-weight: 800; letter-spacing: -.05em; line-height: 1; font-size: clamp(54px, 15vw, 190px); color: #fff; mix-blend-mode: difference; }
-.pin { position: absolute; font-size: 11px; color: #fff; mix-blend-mode: difference; font-variant-numeric: tabular-nums; }
-.pin.a { left: 12px; bottom: 10px; }
-.pin.b { right: 18%; top: 54%; }
-.pin.b::before { content: ""; display: inline-block; width: 7px; height: 7px; background: #fff; border-radius: 50%; margin-right: 6px; animation: pulse 2s ease-in-out infinite; }
-@keyframes pulse { 50% { transform: scale(1.7); opacity: .5; } }
 
 /* sections */
 .sec { margin-top: clamp(40px, 7vw, 88px); }
@@ -493,7 +488,7 @@ a { color: inherit; }
     out.innerHTML =
       '<div class="caps"><div><span>' + pad(g.i + 1) + ' · ' + esc(g.title.toLowerCase()) + '</span><span>' + esc(g.year) + '</span></div>' +
         '<div><span>' + pad(nextN) + ' · основной сюжет</span><span>~' + g.main + ' ч</span></div></div>' +
-      '<div class="art hero reveal" style="' + artStyle(g) + '"><span class="glyph">' + esc(g.glyph) + '</span><span class="pin a">' + pad(g.i + 1) + '</span><span class="pin b">' + pad(nextN) + '</span></div>' +
+      '<div class="art hero reveal" style="' + artStyle(g) + '"><span class="glyph">' + esc(g.glyph) + '</span></div>' +
 
       '<section class="sec"><p class="lab">( о чём игра )</p><p class="lead">' + esc(g.about) + '</p></section>' +
 
@@ -536,7 +531,7 @@ a { color: inherit; }
     out.innerHTML =
       '<div class="caps"><div><span>rawg · ' + esc(d.name.toLowerCase()) + '</span><span>' + esc(yr) + '</span></div>' +
         '<div><span>время прохождения</span><span>' + (d.playtime ? '~' + d.playtime + ' ч' : '—') + '</span></div></div>' +
-      '<div class="art hero reveal" style="' + artStyle(pseudo) + '"><span class="glyph">' + esc(initials(d.name)) + '</span><span class="pin a">rawg</span></div>' +
+      '<div class="art hero reveal" style="' + artStyle(pseudo) + '"><span class="glyph">' + esc(initials(d.name)) + '</span></div>' +
 
       '<section class="sec"><p class="lab">( авторская заметка )</p><h2 class="statement">Заметки «кому зайдёт» для этой игры у нас пока нет.</h2>' +
         '<div class="about one"><div><p>' + (d.description_raw ? esc(snip(d.description_raw, 420)) : 'Описания нет.') + '</p><p class="src">Описание на английском, источник: RAWG</p>' +
