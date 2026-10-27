@@ -69,5 +69,11 @@ try {
   data.catalog = (d.results || []).map(slim);
 } catch (e) { console.warn('catalog', e.message); data.catalog = old.catalog || null; }
 
+const iso = (n) => new Date(Date.now() - n * 864e5).toISOString().slice(0, 10);
+try {
+  const d = await jget('/games', { dates: `${iso(90)},${iso(0)}`, ordering: '-added', page_size: 24, page: 1 });
+  data.fresh = (d.results || []).map(slim);
+} catch (e) { console.warn('fresh', e.message); data.fresh = old.fresh || null; }
+
 writeFileSync('data.json', JSON.stringify(data));
 console.log('data.json written:', Object.keys(data.games).length, 'games,', Object.values(data.curated).reduce((a, l) => a + l.length, 0), 'curated');

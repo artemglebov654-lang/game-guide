@@ -242,6 +242,7 @@ a { color: inherit; }
     <nav aria-label="Разделы">
       <a href="#catalog">игры</a>
       <button type="button" data-quiz>подбор</button>
+      <a href="#fresh">новинки</a>
       <a href="#popular">популярно</a>
       <a href="#about">о нас</a>
     </nav>
@@ -268,6 +269,12 @@ a { color: inherit; }
   <section class="sec" id="catalog">
     <div class="head"><h2>В базе</h2><span>с нашими заметками</span></div>
     <div class="grid" id="grid"></div>
+  </section>
+
+  <section class="sec" id="fresh">
+    <div class="head"><h2>Новинки</h2><span>вышли за последние три месяца</span></div>
+    <div class="grid" id="grid3"></div>
+    <button class="loadmore" id="loadFresh" type="button" hidden>показать ещё →</button>
   </section>
 
   <section class="sec" id="popular">
@@ -357,7 +364,7 @@ a { color: inherit; }
 
   var q = document.getElementById('q'), list = document.getElementById('list'), out = document.getElementById('out'),
       grid = document.getElementById('grid'), go = document.getElementById('go'), word = document.getElementById('word');
-  var PRE = { games: {}, curated: {}, catalog: null }; /* заранее собранные данные из data.json */
+  var PRE = { games: {}, curated: {}, catalog: null, fresh: null }; /* заранее собранные данные из data.json */
   var matches = [], items = [], active = -1, current = null, openToken = 0, seq = 0, timer = null;
   var remote = { q: '', status: 'idle', list: [] };
 
@@ -819,7 +826,7 @@ a { color: inherit; }
   }
 
   /* ---------- popular: curated tabs + RAWG catalog ---------- */
-  var grid2 = document.getElementById('grid2'), loadBtn = document.getElementById('loadMore'), tabsEl = document.getElementById('tabs');
+  var grid3 = document.getElementById('grid3'), grid2 = document.getElementById('grid2'), loadBtn = document.getElementById('loadMore'), tabsEl = document.getElementById('tabs');
   var cat = { tab: 'all', tok: 0, page: 0, loading: false, done: false };
   var CUR = {
     all: ['Counter-Strike 2', 'Dota 2', 'Grand Theft Auto V', 'The Witcher 3: Wild Hunt', 'Red Dead Redemption 2', 'Fortnite', 'VALORANT', 'Minecraft', 'Cyberpunk 2077', 'League of Legends', 'God of War 2018', 'Apex Legends'],
@@ -830,28 +837,29 @@ a { color: inherit; }
     return { id: r.id, name: r.name, released: r.released, background_image: r.background_image, genre: (r.genres && r.genres[0]) ? r.genres[0].name : '' };
   }
   function markCurrent() {
-    [].forEach.call(grid2.querySelectorAll('.rtile'), function (t) {
+    [].forEach.call(document.querySelectorAll('.rtile'), function (t) {
       if (current && current.id === 'rawg:' + t.getAttribute('data-rid')) t.setAttribute('aria-current', 'true');
       else t.removeAttribute('aria-current');
     });
   }
-  function rtile(r, n) {
+  function rtile(r, n, host) {
     return '<button type="button" class="tile rtile rv" style="--n:' + n + '" data-rid="' + r.id + '" data-name="' + esc(r.name) + '">' +
       '<div class="art" style="--bg-art: hsl(0 0% 14%); --cx:50%; --cy:50%"><span class="g2">' + esc(initials(r.name)) + '</span></div>' +
-      '<div class="cap"><b>' + esc(r.name) + '</b><span>' + esc(r.released ? r.released.slice(0, 4) : '') + '</span></div><div class="sub">' + esc((r.genre || '').toLowerCase()) + (findNote(r.name, r.released) ? ' · с заметкой' : '') + '</div></button>';
+      '<div class="cap"><b>' + esc(r.name) + '</b><span>' + esc(r.released ? (host === grid3 ? r.released.slice(8, 10) + '.' + r.released.slice(5, 7) : r.released.slice(0, 4)) : '') + '</span></div><div class="sub">' + esc((r.genre || '').toLowerCase()) + (findNote(r.name, r.released) ? ' · с заметкой' : '') + '</div></button>';
   }
-  function appendTiles(list) {
+  function appendTiles(list, host) {
+    host = host || grid2;
     var rids = GAMES.map(function (g) { return g.rawg && g.rawg.id; });
     var names = GAMES.map(function (g) { return norm(g.title); });
     var have = {};
-    [].forEach.call(grid2.querySelectorAll('.rtile'), function (t) { have[t.getAttribute('data-rid')] = 1; });
+    [].forEach.call(host.querySelectorAll('.rtile'), function (t) { have[t.getAttribute('data-rid')] = 1; });
     var res = list.filter(function (r) {
       if (!r || !r.background_image || have[r.id] || rids.indexOf(r.id) !== -1 || names.indexOf(norm(r.name)) !== -1) return false;
       have[r.id] = 1; return true;
     });
-    grid2.insertAdjacentHTML('beforeend', res.map(function (r, i) { return rtile(r, i % 12); }).join(''));
+    host.insertAdjacentHTML('beforeend', res.map(function (r, i) { return rtile(r, i % 12, host); }).join(''));
     res.forEach(function (r) {
-      putImg(grid2.querySelector('.rtile[data-rid="' + r.id + '"] .art'), sized(r.background_image, 600, 400), r.background_image, true);
+      putImg(host.querySelector('.rtile[data-rid="' + r.id + '"] .art'), sized(r.background_image, 600, 400), r.background_image, true);
     });
     markCurrent();
   }
@@ -1086,6 +1094,24 @@ a { color: inherit; }
     }
   });
 
+  /* ---------- новинки: игры за последние 90 дней, по популярности ---------- */
+  var loadFreshBtn = document.getElementById('loadFresh'), fresh = { page: 0, loading: false, done: false };
+  function isoDay(back) { return new Date(Date.now() - back * 864e5).toISOString().slice(0, 10); }
+  function loadFresh() {
+    if (fresh.loading || fresh.done) return;
+    fresh.loading = true; loadFreshBtn.hidden = false; loadFreshBtn.textContent = 'загружаю…';
+    var pre = fresh.page === 0 && PRE.fresh && PRE.fresh.length;
+    (pre ? Promise.resolve({ results: PRE.fresh, next: true, pre: true })
+         : jget('/games', { dates: isoDay(90) + ',' + isoDay(0), ordering: '-added', page_size: 24, page: fresh.page + 1 })).then(function (d) {
+      fresh.page++;
+      appendTiles(d.pre ? d.results : (d.results || []).map(slim), grid3);
+      if (!grid3.querySelector('.rtile')) grid3.innerHTML = '<p class="src">Новинок пока не нашлось.</p>';
+      if (!d.next) { fresh.done = true; loadFreshBtn.hidden = true; } else loadFreshBtn.textContent = 'показать ещё →';
+    }).catch(function () { loadFreshBtn.hidden = false; loadFreshBtn.textContent = 'RAWG не отвечает, повторить →'; })
+      .then(function () { fresh.loading = false; });
+  }
+  loadFreshBtn.addEventListener('click', loadFresh);
+
   /* ---------- events ---------- */
   q.addEventListener('input', function () { matches = find(q.value); active = -1; remoteSearch(q.value); renderList(); });
   q.addEventListener('focus', function () {
@@ -1136,11 +1162,12 @@ a { color: inherit; }
 
   /* ---------- boot ---------- */
   fetch('data.json').then(function (r) { return r.ok ? r.json() : null; }).then(function (d) {
-    if (d) { PRE.games = d.games || {}; PRE.curated = d.curated || {}; PRE.catalog = d.catalog || null; }
+    if (d) { PRE.games = d.games || {}; PRE.curated = d.curated || {}; PRE.catalog = d.catalog || null; PRE.fresh = d.fresh || null; }
   }).catch(function () { /* без data.json работаем напрямую через RAWG */ }).then(function () {
     renderHome(true);
     GAMES.forEach(function (g) { resolve(g).then(function () { applyImg(g); }); });
     showTab('all');
+    loadFresh();
     route(location.hash, true);
   });
 })();
