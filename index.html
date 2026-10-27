@@ -575,6 +575,47 @@ body::after { content: ""; position: fixed; inset: 0; z-index: 40; pointer-event
     { n: "Team Fortress 2", t: "comp multi long", k: ["team fortress 2"], about: "Бесплатный командный шутер 2007 года с девятью карикатурными классами. Яркий юмор и разные роли в бою.", yes: "Любишь юмор в играх и командные шутеры без лишней серьёзности.", no: "Нужна современная механика и графика: игра старая." },
     { n: "Street Fighter 6", t: "fight comp multi long", k: ["street fighter 6"], about: "Новая часть серии файтингов: уличные бои один на один, зрелищные приёмы и сюжетный режим мирового тура. Есть упрощённое управление для новичков.", yes: "Хочешь начать с файтингов: игра дружелюбна к новичкам.", no: "Не любишь учить комбинации и проигрывать онлайн." }
   ];
+  var RU = {
+    "Counter-Strike 2": ["контра", "контр страйк", "кс 2", "кс2", "кска", "cs2", "cs go", "кс го"],
+    "Dota 2": ["дота", "дота 2", "дотка"],
+    "Grand Theft Auto V": ["гта", "гта 5", "гта v", "гтв", "gta 5"],
+    "The Witcher 3: Wild Hunt": ["ведьмак", "ведьмак 3", "дикая охота", "witcher"],
+    "Red Dead Redemption 2": ["рдр", "рдр 2", "ред дед", "ред дед редемпшн 2", "red dead"],
+    "Fortnite": ["фортнайт", "фортнит"],
+    "Valorant": ["валорант", "валик"],
+    "Minecraft": ["майнкрафт", "майн", "майнкрафт"],
+    "Cyberpunk 2077": ["киберпанк", "киберпанк 2077", "cyberpunk"],
+    "League of Legends": ["лига легенд", "лол", "лига", "lol"],
+    "God of War": ["бог войны", "год оф вар", "год оф вор", "kratos", "кратос"],
+    "Apex Legends": ["апекс", "апекс легендс"],
+    "Horizon Zero Dawn": ["хорайзен", "горизонт", "хорайзон"],
+    "Marvel's Spider-Man": ["человек паук", "спайдермен", "спайдер мен", "spider man"],
+    "Death Stranding": ["дес страндинг", "дэс страндинг", "death"],
+    "Uncharted 4: A Thief's End": ["анчартед", "анчартед 4", "uncharted"],
+    "BioShock Infinite": ["биошок", "биошок инфинити", "bioshock"],
+    "Life is Strange": ["лайф из стрейндж", "life is strange", "жизнь странная"],
+    "Detroit: Become Human": ["детройт", "детроит", "детройт стать человеком"],
+    "Mass Effect 2": ["масс эффект", "масс эффект 2", "mass effect"],
+    "Control": ["контрол", "контроль"],
+    "Metro Exodus": ["метро", "метро исход", "метро эксодус", "metro"],
+    "Ghost of Tsushima": ["призрак цусимы", "гост оф цусима", "цусима", "tsushima"],
+    "Persona 5 Royal": ["персона", "персона 5", "persona 5"],
+    "Overwatch 2": ["овервотч", "овервотч 2", "overwatch"],
+    "Rocket League": ["рокет лига", "рокетлига", "рл"],
+    "PUBG: BATTLEGROUNDS": ["пубг", "пабг", "pubg"],
+    "Tom Clancy's Rainbow Six Siege": ["радуга 6", "рейнбоу сикс", "осада", "р6", "r6", "rainbow six"],
+    "Call of Duty: Warzone": ["колда", "кал оф дьюти", "варзон", "call of duty", "cod"],
+    "Team Fortress 2": ["тим фортресс", "тф2", "tf2"],
+    "Street Fighter 6": ["стрит файтер", "стрит файтер 6", "street fighter"]
+  };
+  function findNotes(text) {
+    var n = norm(text);
+    if (n.length < 2) return [];
+    return NOTES.filter(function (t) {
+      var names = [t.n].concat(RU[t.n] || []);
+      return names.some(function (x) { return norm(x).indexOf(n) !== -1; });
+    }).slice(0, 4);
+  }
   function findNote(name, released) {
     var n = norm(name || '');
     for (var i = 0; i < NOTES.length; i++) {
@@ -650,7 +691,7 @@ body::after { content: ""; position: fixed; inset: 0; z-index: 40; pointer-event
   function remoteSearch(text) {
     clearTimeout(timer);
     var n = norm(text);
-    if (n.length < 2 || /^[а-я0-9 ]+$/.test(n) && matches.length) { seq++; remote = { q: '', status: 'idle', list: [] }; return; }
+    if (n.length < 2 || /^[а-я0-9 ]+$/.test(n) && (matches.length || findNotes(text).length)) { seq++; remote = { q: '', status: 'idle', list: [] }; return; }
     remote = { q: n, status: 'loading', list: [] };
     var my = ++seq;
     timer = setTimeout(function () {
@@ -673,9 +714,13 @@ body::after { content: ""; position: fixed; inset: 0; z-index: 40; pointer-event
     items = [];
     matches.forEach(function (g) { items.push({ kind: 'local', g: g }); });
     var nLocal = items.length;
+    var noteList = findNotes(q.value).filter(function (t) { return !matches.some(function (g) { return norm(g.title) === norm(t.n); }); });
+    noteList.forEach(function (t) { items.push({ kind: 'note', t: t }); });
+    nLocal = items.length;
     if (remote.status === 'ok') remote.list.forEach(function (r) { items.push({ kind: 'remote', r: r }); });
     var html = '', i;
     for (i = 0; i < nLocal; i++) {
+      if (items[i].kind === 'note') { html += li(i, '<span class="n">★</span><span>' + esc(items[i].t.n) + '</span><span class="g">популярное</span>'); continue; }
       var g = items[i].g;
       html += li(i, '<span class="n">' + pad(g.i + 1) + '</span><span>' + esc(g.title) + '</span><span class="g">' + esc(g.genre.split(',')[0]) + '</span>');
     }
@@ -828,6 +873,7 @@ body::after { content: ""; position: fixed; inset: 0; z-index: 40; pointer-event
   }
   function pickItem(it) {
     if (!it) return;
+    if (it.kind === 'note') { closeList(); openNote(it.t); return; }
     if (it.kind === 'local') select(it.g.id); else selectRemote(it.r.id, it.r.name);
   }
   function submit() {
@@ -836,6 +882,8 @@ body::after { content: ""; position: fixed; inset: 0; z-index: 40; pointer-event
     if (!text) return;
     var found = find(text);
     if (found.length) return select(found[0].id);
+    var nf = findNotes(text);
+    if (nf.length) { closeList(); return openNote(nf[0]); }
     if (remote.status === 'ok' && remote.list.length && remote.q === norm(text)) return pickItem({ kind: 'remote', r: remote.list[0] });
     var token = ++openToken;
     showGame('#s'); closeList(); current = null; renderGrid(false); markCurrent();
