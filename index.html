@@ -242,7 +242,6 @@ a { color: inherit; }
     <nav aria-label="Разделы">
       <a href="#catalog">игры</a>
       <button type="button" data-quiz>подбор</button>
-      <a href="#fresh">новинки</a>
       <a href="#popular">популярно</a>
       <a href="#about">о нас</a>
     </nav>
@@ -271,16 +270,11 @@ a { color: inherit; }
     <div class="grid" id="grid"></div>
   </section>
 
-  <section class="sec" id="fresh">
-    <div class="head"><h2>Новинки</h2><span>вышли за последние три месяца</span></div>
-    <div class="grid" id="grid3"></div>
-    <button class="loadmore" id="loadFresh" type="button" hidden>показать ещё →</button>
-  </section>
-
   <section class="sec" id="popular">
     <div class="head"><h2>Популярно</h2></div>
     <div class="tabs" id="tabs" role="tablist" aria-label="Подборки">
       <button type="button" role="tab" data-tab="all" aria-selected="true">всё популярное</button>
+      <button type="button" role="tab" data-tab="fresh" aria-selected="false">новинки</button>
       <button type="button" role="tab" data-tab="story" aria-selected="false">сюжетные</button>
       <button type="button" role="tab" data-tab="comp" aria-selected="false">соревновательные</button>
     </div>
@@ -826,7 +820,7 @@ a { color: inherit; }
   }
 
   /* ---------- popular: curated tabs + RAWG catalog ---------- */
-  var grid3 = document.getElementById('grid3'), grid2 = document.getElementById('grid2'), loadBtn = document.getElementById('loadMore'), tabsEl = document.getElementById('tabs');
+  var grid2 = document.getElementById('grid2'), loadBtn = document.getElementById('loadMore'), tabsEl = document.getElementById('tabs');
   var cat = { tab: 'all', tok: 0, page: 0, loading: false, done: false };
   var CUR = {
     all: ['Counter-Strike 2', 'Dota 2', 'Grand Theft Auto V', 'The Witcher 3: Wild Hunt', 'Red Dead Redemption 2', 'Fortnite', 'VALORANT', 'Minecraft', 'Cyberpunk 2077', 'League of Legends', 'God of War 2018', 'Apex Legends'],
@@ -845,7 +839,7 @@ a { color: inherit; }
   function rtile(r, n, host) {
     return '<button type="button" class="tile rtile rv" style="--n:' + n + '" data-rid="' + r.id + '" data-name="' + esc(r.name) + '">' +
       '<div class="art" style="--bg-art: hsl(0 0% 14%); --cx:50%; --cy:50%"><span class="g2">' + esc(initials(r.name)) + '</span></div>' +
-      '<div class="cap"><b>' + esc(r.name) + '</b><span>' + esc(r.released ? (host === grid3 ? r.released.slice(8, 10) + '.' + r.released.slice(5, 7) : r.released.slice(0, 4)) : '') + '</span></div><div class="sub">' + esc((r.genre || '').toLowerCase()) + (findNote(r.name, r.released) ? ' · с заметкой' : '') + '</div></button>';
+      '<div class="cap"><b>' + esc(r.name) + '</b><span>' + esc(r.released ? (cat.tab === 'fresh' ? r.released.slice(8, 10) + '.' + r.released.slice(5, 7) : r.released.slice(0, 4)) : '') + '</span></div><div class="sub">' + esc((r.genre || '').toLowerCase()) + (findNote(r.name, r.released) ? ' · с заметкой' : '') + '</div></button>';
   }
   function appendTiles(list, host) {
     host = host || grid2;
@@ -878,14 +872,18 @@ a { color: inherit; }
     });
   }
   function loadCatalog() {
-    if (cat.tab !== 'all' || cat.loading || cat.done) return;
+    if ((cat.tab !== 'all' && cat.tab !== 'fresh') || cat.loading || cat.done) return;
     var tok = cat.tok;
     cat.loading = true; loadBtn.hidden = false; loadBtn.textContent = 'загружаю…';
-    var pre = cat.page === 0 && PRE.catalog && PRE.catalog.length;
-    (pre ? Promise.resolve({ results: PRE.catalog, next: true, pre: true }) : jget('/games', { ordering: '-added', page_size: 24, page: cat.page + 1 })).then(function (d) {
+    var isFresh = cat.tab === 'fresh', preList = isFresh ? PRE.fresh : PRE.catalog;
+    var pre = cat.page === 0 && preList && preList.length;
+    var params = { ordering: '-added', page_size: 24, page: cat.page + 1 };
+    if (isFresh) params.dates = isoDay(90) + ',' + isoDay(0);
+    (pre ? Promise.resolve({ results: preList, next: true, pre: true }) : jget('/games', params)).then(function (d) {
       if (tok !== cat.tok) return;
       cat.page++;
       appendTiles(d.pre ? d.results : (d.results || []).map(slim));
+      if (!grid2.querySelector('.rtile')) grid2.innerHTML = '<p class="src">Здесь пока ничего не нашлось.</p>';
       if (!d.next) { cat.done = true; loadBtn.hidden = true; } else loadBtn.textContent = 'показать ещё →';
     }).catch(function () {
       if (tok === cat.tok) { loadBtn.hidden = false; loadBtn.textContent = 'RAWG не отвечает, повторить →'; }
@@ -897,6 +895,7 @@ a { color: inherit; }
     [].forEach.call(tabsEl.querySelectorAll('button[data-tab]'), function (b) { b.setAttribute('aria-selected', String(b.getAttribute('data-tab') === key)); });
     loadBtn.hidden = true;
     grid2.innerHTML = '<p class="src">загружаю подборку…</p>';
+    if (key === 'fresh') { grid2.innerHTML = ''; loadCatalog(); return; }
     curated(key).then(function (list) {
       if (tok !== cat.tok) return;
       grid2.innerHTML = '';
@@ -1138,23 +1137,7 @@ a { color: inherit; }
     }
   });
 
-  /* ---------- новинки: игры за последние 90 дней, по популярности ---------- */
-  var loadFreshBtn = document.getElementById('loadFresh'), fresh = { page: 0, loading: false, done: false };
   function isoDay(back) { return new Date(Date.now() - back * 864e5).toISOString().slice(0, 10); }
-  function loadFresh() {
-    if (fresh.loading || fresh.done) return;
-    fresh.loading = true; loadFreshBtn.hidden = false; loadFreshBtn.textContent = 'загружаю…';
-    var pre = fresh.page === 0 && PRE.fresh && PRE.fresh.length;
-    (pre ? Promise.resolve({ results: PRE.fresh, next: true, pre: true })
-         : jget('/games', { dates: isoDay(90) + ',' + isoDay(0), ordering: '-added', page_size: 24, page: fresh.page + 1 })).then(function (d) {
-      fresh.page++;
-      appendTiles(d.pre ? d.results : (d.results || []).map(slim), grid3);
-      if (!grid3.querySelector('.rtile')) grid3.innerHTML = '<p class="src">Новинок пока не нашлось.</p>';
-      if (!d.next) { fresh.done = true; loadFreshBtn.hidden = true; } else loadFreshBtn.textContent = 'показать ещё →';
-    }).catch(function () { loadFreshBtn.hidden = false; loadFreshBtn.textContent = 'RAWG не отвечает, повторить →'; })
-      .then(function () { fresh.loading = false; });
-  }
-  loadFreshBtn.addEventListener('click', loadFresh);
 
   /* ---------- events ---------- */
   q.addEventListener('input', function () { matches = find(q.value); active = -1; remoteSearch(q.value); renderList(); });
@@ -1214,7 +1197,6 @@ a { color: inherit; }
     renderHome(true);
     GAMES.forEach(function (g) { resolve(g).then(function () { applyImg(g); }); });
     showTab('all');
-    loadFresh();
     route(location.hash, true);
   });
 })();
