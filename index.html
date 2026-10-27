@@ -16,13 +16,14 @@
   --fg: #000000;
   --muted: color-mix(in srgb, var(--fg) 55%, var(--bg));
   --line: color-mix(in srgb, var(--fg) 20%, var(--bg));
+  --surface: color-mix(in srgb, var(--fg) 5%, var(--bg));
   --font: "Onest", "Helvetica Neue", Arial, system-ui, sans-serif;
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) { --bg: #000000; --fg: #ffffff; color-scheme: dark; }
+  :root:not([data-theme="light"]) { --bg: #0d0d0f; --fg: #ebebe8; color-scheme: dark; }
 }
-:root[data-theme="dark"] { --bg: #000000; --fg: #ffffff; color-scheme: dark; }
+:root[data-theme="dark"] { --bg: #0d0d0f; --fg: #ebebe8; color-scheme: dark; }
 
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
@@ -216,6 +217,16 @@ a { color: inherit; }
 .tag2:hover { border-color: var(--fg); }
 .lab.mt0 { margin-top: 18px; }
 
+body::after { content: ""; position: fixed; inset: 0; z-index: 40; pointer-events: none; opacity: .06;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"); }
+.cta, .list, .tag2, .shelf button, .opt, .loadmore { background: var(--surface); }
+.ambient { position: fixed; left: 0; right: 0; top: 0; height: 80vh; z-index: -1; pointer-events: none; opacity: 0; transition: opacity 1.4s;
+  background-size: cover; background-position: center; filter: blur(50px); transform: scale(1.25);
+  -webkit-mask-image: linear-gradient(#000, transparent); mask-image: linear-gradient(#000, transparent); }
+.ambient.on { opacity: .26; }
+@media (prefers-color-scheme: light) { :root:not([data-theme="dark"]) .ambient.on { opacity: .14; } }
+:root[data-theme="light"] .ambient.on { opacity: .14; }
+
 @media (max-width: 820px) {
   .feat { grid-template-columns: minmax(0, 1fr); }
   .shots { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; gap: 10px; padding-bottom: 6px; }
@@ -236,6 +247,7 @@ a { color: inherit; }
 </style>
 </head>
 <body>
+<div class="ambient" id="ambient" aria-hidden="true"></div>
 <div class="wrap">
   <header class="nav">
     <div><button type="button" id="focusSearch">поиск</button></div>
@@ -474,12 +486,20 @@ a { color: inherit; }
       }).catch(function () { return g.rawg; });
     }).catch(function () { return null; });
   }
+  var ambientEl = document.getElementById('ambient');
+  function setAmbient(url) {
+    if (!ambientEl) return;
+    if (!url) { ambientEl.classList.remove('on'); return; }
+    var im = new Image();
+    im.onload = function () { ambientEl.style.backgroundImage = 'url("' + url + '")'; ambientEl.classList.add('on'); };
+    im.src = url;
+  }
   function applyImg(g) {
     if (!g.rawg || !g.rawg.img) return;
     var src = g.rawg.img;
     putImg(grid.querySelector('.tile[data-id="' + g.id + '"] .art'), sized(src, 600, 400), src, true);
     putImg(out.querySelector('.thumb[data-id="' + g.id + '"] .art'), sized(src, 600, 400), src, true);
-    if (current && current.id === g.id) putImg(out.querySelector('.hero'), sized(src, 1280), src);
+    if (current && current.id === g.id) { putImg(out.querySelector('.hero'), sized(src, 1280), src); setAmbient(sized(src, 320)); }
     putImg(document.querySelector('#banner .art[data-gid="' + g.id + '"]'), sized(src, 1280), src);
   }
   function applyAll() { GAMES.forEach(applyImg); }
@@ -766,6 +786,7 @@ a { color: inherit; }
       '<p class="src">Данные и кадры: <a href="https://rawg.io" target="_blank" rel="noopener">RAWG</a></p>';
 
     putImg(out.querySelector('.hero'), sized(d.background_image, 1280), d.background_image);
+    setAmbient(d.background_image ? sized(d.background_image, 320) : '');
     loadVideo(d.id, d.name, openToken);
     if (d.description_raw) translateInto(document.getElementById('rdesc'), document.getElementById('rdescLang'), snip(d.description_raw, 400), 'd' + d.id);
     fillShots(shots);
@@ -781,13 +802,13 @@ a { color: inherit; }
   function select(id, scroll) {
     var g = BY[id]; if (!g) return;
     var token = ++openToken;
-    showGame('#g/' + id); document.title = g.title + ' · Путеводник'; current = g; q.value = g.title; closeList(); renderGrid(false); markCurrent(); renderCard(g);
+    setAmbient(''); showGame('#g/' + id); document.title = g.title + ' · Путеводник'; current = g; q.value = g.title; closeList(); renderGrid(false); markCurrent(); renderCard(g);
     loadExtra(g, token);
     if (scroll) scrollToOut();
   }
   function selectRemote(rid, name, scroll) {
     var token = ++openToken;
-    showGame('#r/' + rid); current = { id: 'rawg:' + rid, title: name }; q.value = name; closeList(); renderGrid(false); markCurrent();
+    setAmbient(''); showGame('#r/' + rid); current = { id: 'rawg:' + rid, title: name }; q.value = name; closeList(); renderGrid(false); markCurrent();
     out.innerHTML = BACK + '<section class="sec empty"><p class="lab">( загружаю )</p><h2 class="statement">' + esc(name) + '</h2></section>';
     Promise.all([
       jget('/games/' + rid),
@@ -975,7 +996,7 @@ a { color: inherit; }
     view = 'game'; homeEl.hidden = true; out.hidden = false;
   }
   function showHome() {
-    view = 'home'; pushed = false; out.hidden = true; homeEl.hidden = false; current = null; q.value = ''; closeList();
+    setAmbient(''); view = 'home'; pushed = false; out.hidden = true; homeEl.hidden = false; current = null; q.value = ''; closeList();
     document.title = 'Путеводник по играм';
     renderGrid(false); markCurrent(); renderBanner(); renderShelfHome(); window.scrollTo(0, 0);
   }
@@ -1040,7 +1061,7 @@ a { color: inherit; }
   }
   function startQuiz() {
     quiz = { step: 0, ans: {}, last: [] };
-    showGame('#quiz'); current = null; markCurrent(); closeList(); q.value = '';
+    setAmbient(''); showGame('#quiz'); current = null; markCurrent(); closeList(); q.value = '';
     document.title = 'Подбор игры · Путеводник';
     renderQuiz(); window.scrollTo(0, 0);
   }
