@@ -14,12 +14,13 @@ jobs:
         with:
           node-version: 20
       - run: node scripts/build-data.mjs
-      - name: Commit data.json if changed
+      - run: node scripts/build-pages.mjs
+      - name: Commit data.json and pages if changed
         run: |
-          if [ -n "$(git status --porcelain data.json)" ]; then
+          if [ -n "$(git status --porcelain data.json g)" ]; then
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add data.json
-            git commit -m "Update data.json"
+            git add data.json g
+            git commit -m "Update data.json and game pages"
             git push
           fi

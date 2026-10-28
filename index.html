@@ -1239,7 +1239,7 @@ body::after { content: ""; position: fixed; inset: 0; z-index: 40; pointer-event
       return;
     }
     if ((t = e.target.closest('[data-share]'))) {
-      var url = location.href;
+      var url = shareUrl();
       if (navigator.share) { navigator.share({ title: document.title, url: url }).catch(function () { /* отмена */ }); }
       else if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(url).then(function () {
@@ -1249,6 +1249,13 @@ body::after { content: ""; position: fixed; inset: 0; z-index: 40; pointer-event
     }
   });
 
+  /* для игр с заранее собранной страницей g/<id>/ даём ссылку на неё: мессенджеры покажут название и картинку */
+  function shareUrl() {
+    var base = location.href.split('#')[0].replace(/index\.html$/, ''), m = /^#(g|r)\/(\w+)$/.exec(location.hash), id = null;
+    if (m && m[1] === 'r') id = m[2];
+    else if (m && PRE.games[m[2]]) id = String(PRE.games[m[2]].id);
+    return id && PRE.pages && PRE.pages[id] ? base + 'g/' + id + '/' : location.href;
+  }
   function isoDay(back) { return new Date(Date.now() - back * 864e5).toISOString().slice(0, 10); }
 
   /* ---------- events ---------- */
@@ -1304,7 +1311,7 @@ body::after { content: ""; position: fixed; inset: 0; z-index: 40; pointer-event
 
   /* ---------- boot ---------- */
   fetch('data.json').then(function (r) { return r.ok ? r.json() : null; }).then(function (d) {
-    if (d) { PRE.games = d.games || {}; PRE.curated = d.curated || {}; PRE.catalog = d.catalog || null; PRE.fresh = d.fresh || null; }
+    if (d) { PRE.games = d.games || {}; PRE.curated = d.curated || {}; PRE.catalog = d.catalog || null; PRE.fresh = d.fresh || null; PRE.pages = d.pages || {}; }
   }).catch(function () { /* без data.json работаем напрямую через RAWG */ }).then(function () {
     renderHome(true);
     GAMES.forEach(function (g) { resolve(g).then(function () { applyImg(g); }); });
