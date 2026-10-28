@@ -84,7 +84,7 @@ for (const name of names) {
   const q = name in PRICE_ALIAS ? PRICE_ALIAS[name] : name;
   if (!q) continue;
   try {
-    const r = await fetch('https://www.cheapshark.com/api/1.0/games?limit=10&title=' + encodeURIComponent(q));
+    const r = await fetch('https://www.cheapshark.com/api/1.0/games?title=' + encodeURIComponent(q));
     if (!r.ok) throw new Error('status ' + r.status);
     const list = await r.json();
     const hit = (Array.isArray(list) ? list : []).find((x) => norm(x.external || '') === norm(q));
