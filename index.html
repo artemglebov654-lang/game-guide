@@ -322,7 +322,7 @@ body::after { content: ""; position: fixed; inset: 0; z-index: 40; pointer-event
       yes: 'Нравится исследовать мир без подсказок и побеждать боссов с десятой попытки.',
       no: 'Не любишь, когда игра не объясняет, куда идти и что делать.',
       sim: [{ id: 'hades', why: 'Быстрые бои и честная сложность, но с короткими заходами.' }, { id: 'elden', why: 'Та же школа: не объясняют, но наказывают честно.' }] },
-    { id: 'bg3', t: 'story open solo multi long', useShot: 0, title: "Baldur's Gate 3", short: "Baldur's Gate 3", alias: ['балдурс гейт', 'балдурс гейт 3', 'бг3', 'bg3', 'baldurs gate'], year: '2023', genre: 'ролевая игра (crpg)', plat: 'ПК, PlayStation 5, Xbox Series', glyph: 'BG3', main: 75, full: 170, tone: [70, 92], c: [30, 20],
+    { id: 'bg3', t: 'story open solo multi long', noArt: true, title: "Baldur's Gate 3", short: "Baldur's Gate 3", alias: ['балдурс гейт', 'балдурс гейт 3', 'бг3', 'bg3', 'baldurs gate'], year: '2023', genre: 'ролевая игра (crpg)', plat: 'ПК, PlayStation 5, Xbox Series', glyph: 'BG3', main: 75, full: 170, tone: [70, 92], c: [30, 20],
       mood: { 'напряжение': 2, 'тяжесть': 2, 'темп': 2, 'сложность': 3 },
       yes: 'Любишь настольные ролёвки и свободу выбора, когда каждое решение что-то меняет.',
       no: 'Мало свободного времени: одно прохождение растягивается на месяцы вечеров.',
@@ -502,7 +502,7 @@ body::after { content: ""; position: fixed; inset: 0; z-index: 40; pointer-event
     im.src = url;
   }
   function applyImg(g) {
-    if (!g.rawg || !g.rawg.img) return;
+    if (g.noArt || !g.rawg || !g.rawg.img) return; /* noArt: в RAWG у игры только скриншоты редактора модов */
     var src = g.rawg.img;
     putImg(grid.querySelector('.tile[data-id="' + g.id + '"] .art'), sized(src, 600, 400), src, true);
     putImg(out.querySelector('.thumb[data-id="' + g.id + '"] .art'), sized(src, 600, 400), src, true);
@@ -664,7 +664,7 @@ body::after { content: ""; position: fixed; inset: 0; z-index: 40; pointer-event
       loadVideo(r.id, g.title, token);
       return Promise.all([
         jget('/games/' + r.id).catch(function () { return null; }),
-        jget('/games/' + r.id + '/screenshots', { page_size: 4 }).then(function (s) { return s.results || []; }).catch(function () { return []; })
+        jget('/games/' + r.id + '/screenshots', { page_size: 4 }).then(function (s) { return g.noArt ? [] : (s.results || []); }).catch(function () { return []; })
       ]).then(function (res) { if (token === openToken) fillExtra(res[0], res[1]); });
     }).catch(function () { /* карточка и без RAWG остаётся целой */ });
   }
