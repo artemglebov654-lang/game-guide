@@ -85,7 +85,7 @@ for (const name of names) {
   if (!q) continue;
   try {
     const r = await fetch('https://www.cheapshark.com/api/1.0/games?title=' + encodeURIComponent(q));
-    if (!r.ok) throw new Error('status ' + r.status);
+    if (!r.ok) { const t = (await r.text()).slice(0, 200).replace(/\s+/g, ' '); throw new Error('status ' + r.status + ' ' + t); }
     const list = await r.json();
     const hit = (Array.isArray(list) ? list : []).find((x) => norm(x.external || '') === norm(q));
     if (!diag.sample) diag.sample = JSON.stringify(list).slice(0, 300);
