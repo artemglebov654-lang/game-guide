@@ -1,0 +1,18 @@
+name: check-site
+# Страж сайта: после каждого изменения и каждую ночь проверяет, что ничего не сломалось.
+# Если что-то не так, запуск станет красным, и GitHub напишет об этом на почту.
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: '47 4 * * *'
+  workflow_dispatch:
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: node scripts/check-site.mjs --net
