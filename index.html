@@ -845,9 +845,10 @@ body::after { content: ""; position: fixed; inset: 0; z-index: 40; pointer-event
     var pseudo = { tone: tones[rid % 4], c: [(rid * 7) % 90 + 5, (rid * 13) % 90 + 5] };
     var note = findNote(d.name, d.released);
     document.title = d.name + ' · Путеводник'; q.value = d.name;
+    var mine = note && FEEL[note.n] ? FEEL[note.n][0] : '';
     var rows = [];
     rows.push(['дата выхода', d.released || '—']);
-    rows.push(['время прохождения', d.playtime ? '~' + d.playtime + ' ч, по данным игроков' : '—']);
+    rows.push(['время прохождения', d.playtime ? '~' + d.playtime + ' ч, по данным игроков' : (mine ? mine + ' (оценка путеводника)' : '—')]);
     rows.push(['жанр', genres]);
     rows.push(['платформы', plats]);
     if (d.metacritic) rows.push(['metacritic', String(d.metacritic)]);
@@ -855,7 +856,7 @@ body::after { content: ""; position: fixed; inset: 0; z-index: 40; pointer-event
 
     out.innerHTML = BACK +
       '<div class="caps"><div><span>rawg · ' + esc(d.name.toLowerCase()) + '</span><span>' + esc(yr) + '</span></div>' +
-        '<div><span>время прохождения</span><span>' + (d.playtime ? '~' + d.playtime + ' ч' : '—') + '</span></div></div>' +
+        '<div><span>время прохождения</span><span>' + (d.playtime ? '~' + d.playtime + ' ч' : (mine ? mine.split(',')[0] : '—')) + '</span></div></div>' +
       '<div class="art hero reveal" style="' + artStyle(pseudo) + '"><span class="glyph">' + esc(initials(d.name)) + '</span></div>' +
       shotsBlock() +
       shelfBlock('r:' + d.id, d.name) +
