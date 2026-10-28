@@ -89,11 +89,28 @@ for (const name of names) {
     const list = await r.json();
     const hit = (Array.isArray(list) ? list : []).find((x) => norm(x.external || '') === norm(q));
     if (!diag.sample) diag.sample = JSON.stringify(list).slice(0, 300);
-    if (hit && hit.cheapest && hit.cheapestDealID) { data.prices[norm(name)] = { p: String(hit.cheapest), d: hit.cheapestDealID }; diag.ok++; } else diag.nohit++;
+    if (hit && hit.cheapest && hit.cheapestDealID) { data.prices[norm(name)] = { p: String(hit.cheapest), d: hit.cheapestDealID, s: /^\d+$/.test(String(hit.steamAppID || '')) ? String(hit.steamAppID) : '' }; diag.ok++; } else diag.nohit++;
     await sleep(300);
   } catch (e) { console.warn('price', name, e.message); diag.err[e.message] = (diag.err[e.message] || 0) + 1; }
 }
 data.pricesDiag = diag;
+
+// Рубли: неофициальный магазинный API Steam (регион RU), только для игр, у которых CheapShark назвал steamAppID.
+const rub = { ok: 0, none: 0, err: {}, sample: null };
+for (const rec of Object.values(data.prices)) {
+  if (!rec.s) continue;
+  try {
+    const r = await fetch(`https://store.steampowered.com/api/appdetails?appids=${rec.s}&cc=ru&l=russian&filters=price_overview`, { headers: { 'User-Agent': 'GameGuide/1.0 (+https://github.com/artemglebov654-lang/game-guide)' } });
+    if (!r.ok) throw new Error('status ' + r.status);
+    const j = await r.json();
+    const po = j && j[rec.s] && j[rec.s].success && j[rec.s].data && j[rec.s].data.price_overview;
+    if (!rub.sample) rub.sample = JSON.stringify(j).slice(0, 300);
+    if (po && po.currency === 'RUB' && po.final > 0) { rec.r = { p: Math.round(po.final / 100), o: Math.round((po.initial || po.final) / 100), d: po.discount_percent || 0 }; rub.ok++; } else rub.none++;
+    await sleep(500);
+  } catch (e) { console.warn('steam', rec.s, e.message); rub.err[e.message] = (rub.err[e.message] || 0) + 1; }
+}
+data.rubDiag = rub;
+if (!rub.ok && old.prices) for (const [k, v] of Object.entries(data.prices)) if (old.prices[k] && old.prices[k].r) v.r = old.prices[k].r;
 if (!Object.keys(data.prices).length && old.prices) data.prices = old.prices;
 
 writeFileSync('data.json', JSON.stringify(data));

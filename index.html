@@ -782,6 +782,12 @@ body::after { content: ""; position: fixed; inset: 0; z-index: 40; pointer-event
         '<li><span></span><span class="v" style="font-weight:400;color:var(--muted);font-size:12px">free-to-play: играть можно без оплаты, внутри бывают платные покупки</span></li>';
     }
     var p = PRE.prices[norm(name)];
+    if (p && p.r && p.s && /^\d+$/.test(p.s) && isFinite(p.r.p) && isFinite(p.r.o) && isFinite(p.r.d)) {
+      var fm = function (n) { return Number(n).toLocaleString('ru-RU') + ' ₽'; };
+      var txt = fm(p.r.p) + (p.r.d > 0 ? ' (−' + Math.round(p.r.d) + '%, было ' + fm(p.r.o) + ')' : '');
+      return '<li><span>цена в Steam</span><span class="v"><a href="https://store.steampowered.com/app/' + p.s + '" target="_blank" rel="noopener">' + esc(txt) + ' ↗</a></span></li>' +
+        '<li><span></span><span class="v" style="font-weight:400;color:var(--muted);font-size:12px">российский магазин Steam, цена на момент ночной проверки</span></li>';
+    }
     if (!p || !/^\d+(\.\d+)?$/.test(p.p) || !/^[A-Za-z0-9%]+$/.test(p.d)) return '';
     return '<li><span>цена в магазинах</span><span class="v"><a href="https://www.cheapshark.com/redirect?dealID=' + p.d + '" target="_blank" rel="noopener">от $' + p.p + ' ↗</a></span></li>' +
       '<li><span></span><span class="v" style="font-weight:400;color:var(--muted);font-size:12px">в долларах, по данным CheapShark; в твоём регионе может отличаться</span></li>';
