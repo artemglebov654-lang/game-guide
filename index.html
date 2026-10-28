@@ -12,8 +12,8 @@
 <style>
 /* Layout: редакционная вёрстка в духе журнала. Гигантское слово-логотип, микро-навигация, подписи с номерами, широкий блок-обложка, строки с тонкими линиями, сетка каталога. Только чёрный и белый, серый появляется лишь как смесь этих двух. */
 :root {
-  --bg: #ffffff;
-  --fg: #000000;
+  --bg: #f3f2ee;
+  --fg: #0d0d0f;
   --muted: color-mix(in srgb, var(--fg) 55%, var(--bg));
   --line: color-mix(in srgb, var(--fg) 20%, var(--bg));
   --surface: color-mix(in srgb, var(--fg) 5%, var(--bg));
@@ -45,6 +45,7 @@ a { color: inherit; }
 .nav { display: grid; grid-template-columns: 1fr auto 1fr; gap: 12px; font-size: 12px; line-height: 1.35; align-items: start; }
 .nav nav { display: flex; flex-direction: column; }
 .nav .r { text-align: right; }
+.nav .r button { padding: 0; font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
 .nav a, .nav button { text-decoration: none; }
 .nav a:hover, .nav button:hover { text-decoration: underline; text-underline-offset: 3px; }
 
@@ -257,7 +258,7 @@ body::after { content: ""; position: fixed; inset: 0; z-index: 40; pointer-event
       <a href="#popular">популярно</a>
       <a href="#about">о нас</a>
     </nav>
-    <div class="r">прототип [v1]</div>
+    <div class="r"><button type="button" id="themeBtn" aria-label="Сменить тему"></button></div>
   </header>
 
   <div class="mark"><h1 id="word" aria-label="Путеводник"></h1></div>
@@ -370,6 +371,21 @@ body::after { content: ""; position: fixed; inset: 0; z-index: 40; pointer-event
 
   var q = document.getElementById('q'), list = document.getElementById('list'), out = document.getElementById('out'),
       grid = document.getElementById('grid'), go = document.getElementById('go'), word = document.getElementById('word');
+  /* тема: авто по настройкам телефона, кнопка переключает вручную и запоминает выбор */
+  var themeBtn = document.getElementById('themeBtn');
+  function isDark() {
+    var t = document.documentElement.getAttribute('data-theme');
+    return t ? t === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
+  }
+  function paintTheme() { if (themeBtn) themeBtn.textContent = isDark() ? 'светлая тема ○' : 'тёмная тема ●'; }
+  try { var savedTheme = localStorage.getItem('gg2:theme'); if (savedTheme) document.documentElement.setAttribute('data-theme', savedTheme); } catch (e) { /* без памяти тоже работает */ }
+  if (themeBtn) themeBtn.addEventListener('click', function () {
+    var next = isDark() ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    try { localStorage.setItem('gg2:theme', next); } catch (e) { /* ок */ }
+    paintTheme();
+  });
+  paintTheme();
   var PRE = { games: {}, curated: {}, catalog: null, fresh: null }; /* заранее собранные данные из data.json */
   var matches = [], items = [], active = -1, current = null, openToken = 0, seq = 0, timer = null;
   var remote = { q: '', status: 'idle', list: [] };
