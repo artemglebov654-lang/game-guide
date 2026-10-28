@@ -84,7 +84,7 @@ for (const name of names) {
   const q = name in PRICE_ALIAS ? PRICE_ALIAS[name] : name;
   if (!q) continue;
   try {
-    const r = await fetch('https://www.cheapshark.com/api/1.0/games?title=' + encodeURIComponent(q));
+    const r = await fetch('https://www.cheapshark.com/api/1.0/games?title=' + encodeURIComponent(q), { headers: { 'User-Agent': 'GameGuide/1.0 (+https://github.com/artemglebov654-lang/game-guide)' } });
     if (!r.ok) { const t = (await r.text()).slice(0, 200).replace(/\s+/g, ' '); throw new Error('status ' + r.status + ' ' + t); }
     const list = await r.json();
     const hit = (Array.isArray(list) ? list : []).find((x) => norm(x.external || '') === norm(q));
