@@ -77,6 +77,7 @@ try {
 
 // Цены: CheapShark (бесплатно, без ключа). Берём только точное совпадение названия, чтобы не показать цену чужой игры.
 data.prices = {};
+const diag = { ok: 0, nohit: 0, err: {}, sample: null };
 const names = [...new Set([...GAMES.map((g) => g.title), ...Object.values(CUR).flat()])];
 const PRICE_ALIAS = { 'God of War 2018': 'God of War', 'VALORANT': '' };
 for (const name of names) {
@@ -87,10 +88,12 @@ for (const name of names) {
     if (!r.ok) throw new Error('status ' + r.status);
     const list = await r.json();
     const hit = (Array.isArray(list) ? list : []).find((x) => norm(x.external || '') === norm(q));
-    if (hit && hit.cheapest && hit.cheapestDealID) data.prices[norm(name)] = { p: String(hit.cheapest), d: hit.cheapestDealID };
+    if (!diag.sample) diag.sample = JSON.stringify(list).slice(0, 300);
+    if (hit && hit.cheapest && hit.cheapestDealID) { data.prices[norm(name)] = { p: String(hit.cheapest), d: hit.cheapestDealID }; diag.ok++; } else diag.nohit++;
     await sleep(300);
-  } catch (e) { console.warn('price', name, e.message); }
+  } catch (e) { console.warn('price', name, e.message); diag.err[e.message] = (diag.err[e.message] || 0) + 1; }
 }
+data.pricesDiag = diag;
 if (!Object.keys(data.prices).length && old.prices) data.prices = old.prices;
 
 writeFileSync('data.json', JSON.stringify(data));
