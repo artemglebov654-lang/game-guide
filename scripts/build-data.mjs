@@ -14,8 +14,8 @@ const GAMES = [
   { id: 'hades', title: 'Hades' }, { id: 'portal', title: 'Portal 2' }
 ];
 const CUR = {
-  all: ['Counter-Strike 2', 'Dota 2', 'Grand Theft Auto V', 'The Witcher 3: Wild Hunt', 'Red Dead Redemption 2', 'Fortnite', 'VALORANT', 'Minecraft', 'Cyberpunk 2077', 'League of Legends', 'God of War 2018', 'Apex Legends'],
-  story: ['The Witcher 3: Wild Hunt', 'Red Dead Redemption 2', 'God of War 2018', 'Cyberpunk 2077', 'Horizon Zero Dawn', "Marvel's Spider-Man", 'Death Stranding', "Uncharted 4: A Thief's End", 'BioShock Infinite', 'Life is Strange', 'Detroit: Become Human', 'Mass Effect 2', 'Control', 'Metro Exodus', 'Ghost of Tsushima', 'Persona 5 Royal'],
+  all: ['Counter-Strike 2', 'Dota 2', 'Grand Theft Auto V', 'The Witcher 3: Wild Hunt', 'Red Dead Redemption 2', 'Fortnite', 'VALORANT', 'Minecraft', 'Cyberpunk 2077', 'League of Legends', 'God of War 2018', 'Apex Legends', 'Celeste', 'Cuphead', 'Undertale', 'Subnautica', 'Terraria', 'Dead Cells', 'DOOM Eternal', "Sid Meier's Civilization VI", 'Cities: Skylines', 'The Sims 4', 'Among Us', 'Left 4 Dead 2', 'Phasmophobia', 'Genshin Impact', 'Forza Horizon 5', 'Valheim', 'Monster Hunter: World', 'Slay the Spire'],
+  story: ['The Witcher 3: Wild Hunt', 'Red Dead Redemption 2', 'God of War 2018', 'Cyberpunk 2077', 'Horizon Zero Dawn', "Marvel's Spider-Man", 'Death Stranding', "Uncharted 4: A Thief's End", 'BioShock Infinite', 'Life is Strange', 'Detroit: Become Human', 'Mass Effect 2', 'Control', 'Metro Exodus', 'Ghost of Tsushima', 'Persona 5 Royal', 'The Elder Scrolls V: Skyrim', 'Fallout 4', 'Fallout: New Vegas', 'Dark Souls III', 'Sekiro: Shadows Die Twice', 'Bloodborne', 'The Last of Us Part II', 'Half-Life 2', 'Outer Wilds', 'Resident Evil Village', 'Alan Wake 2', "Assassin's Creed Odyssey", 'Hogwarts Legacy', 'Stray', 'It Takes Two'],
   comp: ['Counter-Strike 2', 'Dota 2', 'VALORANT', 'League of Legends', 'Fortnite', 'Apex Legends', 'Overwatch 2', 'Rocket League', 'PUBG: BATTLEGROUNDS', "Tom Clancy's Rainbow Six Siege", 'Call of Duty: Warzone', 'Team Fortress 2', 'Street Fighter 6']
 };
 
