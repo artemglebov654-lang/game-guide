@@ -202,7 +202,9 @@ a { color: inherit; }
 .rnd { margin: 14px 0 0; font-size: 14px; }
 .rnd button { padding: 0; font: inherit; color: var(--muted); background: none; border: 0; border-bottom: 1px solid var(--line); cursor: pointer; }
 .rnd button:hover { color: var(--fg); }
-.cta:hover { background: var(--fg); color: var(--bg); }
+.note2 { font-size: 12px; color: var(--muted); margin: 14px 0 0; }
+.cta { background: var(--fg); color: var(--bg); }
+.cta:hover { background: var(--surface); color: var(--fg); }
 .qbar { display: flex; gap: 4px; margin-bottom: 18px; }
 .qbar i { width: 32px; height: 4px; background: var(--line); }
 .qbar i.on { background: var(--fg); }
@@ -227,7 +229,7 @@ a { color: inherit; }
 
 body::after { content: ""; position: fixed; inset: 0; z-index: 40; pointer-events: none; opacity: .06;
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"); }
-.cta, .list, .tag2, .shelf button, .opt, .loadmore { background: var(--surface); }
+.list, .tag2, .shelf button, .opt, .loadmore { background: var(--surface); }
 .ambient { position: fixed; left: 0; right: 0; top: 0; height: 80vh; z-index: -1; pointer-events: none; opacity: 0; transition: opacity 1.4s;
   background-size: cover; background-position: center; filter: blur(50px) saturate(1.6); transform: scale(1.25);
   -webkit-mask-image: linear-gradient(#000, transparent); mask-image: linear-gradient(#000, transparent); }
@@ -281,7 +283,7 @@ body::after { content: ""; position: fixed; inset: 0; z-index: 40; pointer-event
 
   <div id="home">
     <div class="chips" id="chips"></div>
-    <button type="button" class="cta" data-quiz><span>Не знаешь, во что играть?</span><b>подобрать за 4 вопроса →</b></button>
+    <button type="button" class="cta" data-quiz><span>Не знаешь, во что играть?</span><b>подобрать за 7 вопросов →</b></button>
     <p class="rnd"><button type="button" data-random>или просто удиви меня ↻</button></p>
     <section class="sec" id="banner"></section>
     <section class="sec" id="shelfHome" hidden></section>
@@ -1152,22 +1154,60 @@ body::after { content: ""; position: fixed; inset: 0; z-index: 40; pointer-event
     { k: 'mood', q: 'Какое сегодня настроение?', o: [['Хочу расслабиться', 'calm'], ['Хочу собраться и поднапрячься', 'tense'], ['Всё равно', '']] },
     { k: 'time', q: 'Сколько времени готов отдать игре?', o: [['Пара вечеров', 'short'], ['Месяц по вечерам', 'mid'], ['Надолго, хоть на сотню часов', 'long'], ['Не важно', '']] },
     { k: 'who', q: 'С кем играешь?', o: [['Один', 'solo'], ['С друзьями или онлайн', 'multi'], ['Без разницы', '']] },
-    { k: 'kind', q: 'Что тебе ближе всего?', o: [['Сюжет и персонажи', 'story'], ['Исследовать большой мир', 'open'], ['Бои и испытания', 'fight'], ['Соревнования', 'comp'], ['Творчество и покой', 'chill']] }
+    { k: 'kind', q: 'Что тебе ближе всего?', o: [['Сюжет и персонажи', 'story'], ['Исследовать большой мир', 'open'], ['Бои и испытания', 'fight'], ['Соревнования', 'comp'], ['Творчество и покой', 'chill']] },
+    { k: 'tone', q: 'Какая атмосфера тебе по душе?', o: [['Мрачная и взрослая', 'dark'], ['Яркая и лёгкая', 'bright'], ['Без разницы', '']] },
+    { k: 'hard', q: 'Как с трудностью?', o: [['Люблю вызов, пусть бьёт', 'hard'], ['Чтобы без нервов', 'easy'], ['Золотая середина', '']] },
+    { k: 'shoot', q: 'Что со стрельбой?', o: [['Нормально, даже люблю', 'yes'], ['Лучше без неё', 'no'], ['Не принципиально', '']] }
   ];
-  var quiz = { step: 0, ans: {}, last: [] };
+  /* дополнительные метки для подбора: тон (dark/bright), сложность (hard/easy), стрельба (shoot) */
+  var TAGX = {
+    tlou: 'dark shoot', hk: 'dark hard', bg3: '', sdv: 'bright easy', elden: 'dark hard', disco: 'dark', hades: 'hard', portal: 'bright easy',
+    'Counter-Strike 2': 'shoot hard', 'Dota 2': 'hard', 'Grand Theft Auto V': 'shoot', 'The Witcher 3: Wild Hunt': 'dark', 'Red Dead Redemption 2': 'dark shoot',
+    'Fortnite': 'bright shoot', 'VALORANT': 'shoot hard', 'Minecraft': 'bright easy', 'Cyberpunk 2077': 'dark shoot', 'League of Legends': 'hard',
+    'God of War (2018)': 'dark', 'Apex Legends': 'shoot hard', 'Horizon Zero Dawn': 'bright', "Marvel's Spider-Man": 'bright easy', 'Death Stranding': 'dark',
+    "Uncharted 4: A Thief's End": 'bright shoot easy', 'BioShock Infinite': 'dark shoot', 'Life is Strange': 'easy', 'Detroit: Become Human': 'dark easy',
+    'Mass Effect 2': 'shoot', 'Control': 'dark shoot', 'Metro Exodus': 'dark shoot', 'Ghost of Tsushima': '', 'Persona 5 Royal': 'bright',
+    'Overwatch 2': 'bright shoot', 'Rocket League': 'bright', 'PUBG: BATTLEGROUNDS': 'shoot hard', "Tom Clancy's Rainbow Six Siege": 'shoot hard',
+    'Call of Duty: Warzone': 'shoot', 'Team Fortress 2': 'bright shoot', 'Street Fighter 6': 'hard'
+  };
+  /* жанр RAWG -> метки, чтобы подмешать в подбор игры без авторской заметки */
+  var GENRE_T = {
+    'Action': 'fight', 'Shooter': 'fight shoot', 'RPG': 'story open solo long', 'Adventure': 'story open solo', 'Puzzle': 'calm solo short easy',
+    'Simulation': 'calm chill solo long easy', 'Strategy': 'tense long', 'Racing': 'fight multi', 'Sports': 'comp multi', 'Fighting': 'fight comp multi hard',
+    'Platformer': 'solo mid', 'Casual': 'calm chill short easy', 'Indie': 'solo', 'Massively Multiplayer': 'multi long', 'Arcade': 'short fight', 'Family': 'bright easy multi', 'Card': 'calm short', 'Board Games': 'calm multi short', 'Educational': 'calm easy'
+  };
+  var quiz = { step: 0, ans: {}, list: [], shown: 5, hidden: 0 };
   function quizPool() {
-    var pool = [];
-    GAMES.forEach(function (g) { pool.push({ name: g.title, t: g.t, yes: g.yes, id: g.id, img: g.rawg && g.rawg.img }); });
-    NOTES.forEach(function (n) { pool.push({ name: n.n, t: n.t, yes: n.yes, note: n }); });
+    var pool = [], seenRid = {};
+    GAMES.forEach(function (g) { pool.push({ name: g.title, t: g.t + ' ' + (TAGX[g.id] || ''), yes: g.yes, id: g.id, img: g.rawg && g.rawg.img, key: 'g:' + g.id }); });
+    NOTES.forEach(function (n) { pool.push({ name: n.n, t: n.t + ' ' + (TAGX[n.n] || ''), yes: n.yes, note: n }); });
+    [PRE.catalog, PRE.fresh].forEach(function (L) {
+      (L || []).forEach(function (r) {
+        if (!r || seenRid[r.id] || findNote(r.name, r.released)) return;
+        var have = GAMES.some(function (g) { return (g.rawg && g.rawg.id === r.id) || norm(g.title) === norm(r.name); });
+        if (have) return;
+        seenRid[r.id] = 1;
+        pool.push({ name: r.name, t: (GENRE_T[r.genre] || '') + ' extra', yes: 'ты любишь жанр «' + (r.genre || 'игры').toLowerCase() + '». У этой игры пока нет авторской заметки, она подобрана по жанру.', rid: r.id, img: r.background_image, key: 'r:' + r.id, extra: true });
+      });
+    });
     return pool;
   }
+  var WHY = { calm: 'спокойно', tense: 'напряжённо', short: 'недолго', mid: 'на месяц', long: 'надолго', solo: 'одному', multi: 'с друзьями', story: 'сюжет', open: 'большой мир', fight: 'бои', comp: 'соревнования', chill: 'творчество и покой', dark: 'мрачная атмосфера', bright: 'яркая атмосфера', hard: 'вызов', easy: 'без нервов' };
   function quizScore(it, a) {
-    var t = ' ' + it.t + ' ', sc = 0;
+    var t = ' ' + it.t + ' ', sc = 0, max = 0, why = [];
     function has(x) { return t.indexOf(' ' + x + ' ') !== -1; }
-    if (a.mood) { if (has(a.mood)) sc += 2; else if (has(a.mood === 'calm' ? 'tense' : 'calm')) sc -= 2; }
-    if (a.time && has(a.time)) sc += 1.5;
-    if (a.who) { if (has(a.who)) sc += 2.5; else sc -= 3; }
-    if (a.kind && has(a.kind)) sc += 2;
+    if (a.mood) { max += 2; if (has(a.mood)) { sc += 2; why.push(WHY[a.mood]); } else if (has(a.mood === 'calm' ? 'tense' : 'calm')) sc -= 2; }
+    if (a.time) { max += 1.5; if (has(a.time)) { sc += 1.5; why.push(WHY[a.time]); } }
+    if (a.who) { max += 2.5; if (has(a.who)) { sc += 2.5; why.push(WHY[a.who]); } else sc -= 3; }
+    if (a.kind) { max += 2; if (has(a.kind)) { sc += 2; why.push(WHY[a.kind]); } }
+    if (a.tone) { max += 2; if (has(a.tone)) { sc += 2; why.push(WHY[a.tone]); } else if (has(a.tone === 'dark' ? 'bright' : 'dark')) sc -= 1.5; }
+    if (a.hard === 'hard') { max += 2; if (has('hard')) { sc += 2; why.push(WHY.hard); } }
+    else if (a.hard === 'easy') { max += 1.5; if (has('easy')) { sc += 1.5; why.push(WHY.easy); } else if (has('hard')) sc -= 2.5; }
+    if (a.shoot === 'no') { if (has('shoot')) sc -= 4; else { sc += 0.5; max += 0.5; } }
+    else if (a.shoot === 'yes') { max += 1; if (has('shoot')) sc += 1; }
+    if (it.extra) sc -= 1.5;
+    it.pct = max > 0 ? Math.max(5, Math.min(99, Math.round(100 * sc / max))) : 50;
+    it.why = why;
     return sc;
   }
   function slimByNote(note) {
@@ -1187,7 +1227,7 @@ body::after { content: ""; position: fixed; inset: 0; z-index: 40; pointer-event
     }).catch(function () { /* без RAWG не откроем */ });
   }
   function startQuiz() {
-    quiz = { step: 0, ans: {}, last: [] };
+    quiz = { step: 0, ans: {}, list: [], shown: 5, hidden: 0 };
     setAmbient(''); showGame('#quiz'); current = null; markCurrent(); closeList(); q.value = '';
     document.title = 'Подбор игры · Путеводник';
     renderQuiz(); window.scrollTo(0, 0);
@@ -1204,16 +1244,29 @@ body::after { content: ""; position: fixed; inset: 0; z-index: 40; pointer-event
       '</div>' + (st ? '<button type="button" class="more" data-qback>← предыдущий вопрос</button>' : '') + '</section>';
   }
   function renderQuizResult() {
-    var pool = quizPool(), a = quiz.ans;
-    pool.forEach(function (it) { it.sc = quizScore(it, a) + Math.random() * 0.4; });
+    var pool = quizPool(), a = quiz.ans, sh = shelfGet(), hidden = 0;
+    pool = pool.filter(function (it) {
+      var key = it.key || (it.note ? (function () { var sl = slimByNote(it.note); return sl ? 'r:' + sl.id : ''; })() : '');
+      var e = key && sh[key];
+      if (e && (e.s === 'played' || e.s === 'dropped')) { hidden++; return false; }
+      return true;
+    });
+    pool.forEach(function (it) { it.sc = quizScore(it, a) + Math.random() * 0.8; });
     pool.sort(function (x, y) { return y.sc - x.sc; });
-    var top = pool.slice(0, 3); quiz.last = top;
+    quiz.list = pool; quiz.hidden = hidden; quiz.shown = 5;
+    drawQuizResult();
+  }
+  function drawQuizResult() {
+    var top = quiz.list.slice(0, quiz.shown);
     out.innerHTML = BACK +
       '<section class="sec"><p class="lab">( твой подбор )</p><h2 class="statement">Вот что стоит попробовать.</h2></section>' +
       '<section class="sec"><ul class="pick">' + top.map(function (it, i) {
         return '<li><button type="button" data-pick="' + i + '"><div class="art" data-pi="' + i + '" style="--bg-art: hsl(0 0% 16%); --cx:50%; --cy:50%"></div>' +
-          '<span><b>' + esc(it.name) + '</b><em>Зайдёт, если ' + esc(lowerFirst(it.yes)) + '</em></span><span class="go2">→</span></button></li>';
-      }).join('') + '</ul><button type="button" class="more" data-again>пройти заново</button></section>';
+          '<span><b>' + esc(it.name) + '</b><em>' + it.pct + '% совпадение' + (it.why.length ? ' · ' + esc(it.why.slice(0, 4).join(', ')) : '') + '</em><em>Зайдёт, если ' + esc(lowerFirst(it.yes)) + '</em></span><span class="go2">→</span></button></li>';
+      }).join('') + '</ul>' +
+      (quiz.shown < quiz.list.length ? '<button type="button" class="more" data-qmore>показать ещё →</button> ' : '') +
+      '<button type="button" class="more" data-again>пройти заново</button>' +
+      (quiz.hidden ? '<p class="note2">Скрыл ' + quiz.hidden + ' игр, которые ты отметил как «играл» или «бросил».</p>' : '') + '</section>';
     top.forEach(function (it, i) {
       var src = it.img;
       if (!src && it.note) { var sl = slimByNote(it.note); src = sl && sl.background_image; }
@@ -1262,10 +1315,11 @@ body::after { content: ""; position: fixed; inset: 0; z-index: 40; pointer-event
       renderQuiz(); window.scrollTo(0, 0); return;
     }
     if (e.target.closest('[data-qback]')) { quiz.step = Math.max(0, quiz.step - 1); renderQuiz(); return; }
+    if (e.target.closest('[data-qmore]')) { quiz.shown = Math.min(quiz.list.length, quiz.shown + 5); drawQuizResult(); return; }
     if (e.target.closest('[data-again]')) { startQuiz(); return; }
     if ((t = e.target.closest('[data-pick]'))) {
-      var it = quiz.last[+t.getAttribute('data-pick')];
-      if (it) { if (it.id) select(it.id, true); else openNote(it.note); }
+      var it = quiz.list[+t.getAttribute('data-pick')];
+      if (it) { if (it.id) select(it.id, true); else if (it.rid) selectRemote(it.rid, it.name, true); else openNote(it.note); }
       return;
     }
     if ((t = e.target.closest('[data-shelf]'))) {
