@@ -199,6 +199,9 @@ a { color: inherit; }
 .cta { display: flex; justify-content: space-between; align-items: baseline; gap: 8px 16px; flex-wrap: wrap; width: 100%; margin-top: clamp(24px, 4vw, 40px); border: 1px solid var(--fg); padding: 20px 22px; transition: background .2s, color .2s; }
 .cta span { font-weight: 800; letter-spacing: -.03em; font-size: clamp(22px, 4vw, 40px); line-height: 1.05; }
 .cta b { font-weight: 500; font-size: 14px; }
+.rnd { margin: 14px 0 0; font-size: 14px; }
+.rnd button { padding: 0; font: inherit; color: var(--muted); background: none; border: 0; border-bottom: 1px solid var(--line); cursor: pointer; }
+.rnd button:hover { color: var(--fg); }
 .cta:hover { background: var(--fg); color: var(--bg); }
 .qbar { display: flex; gap: 4px; margin-bottom: 18px; }
 .qbar i { width: 32px; height: 4px; background: var(--line); }
@@ -279,6 +282,7 @@ body::after { content: ""; position: fixed; inset: 0; z-index: 40; pointer-event
   <div id="home">
     <div class="chips" id="chips"></div>
     <button type="button" class="cta" data-quiz><span>Не знаешь, во что играть?</span><b>подобрать за 4 вопроса →</b></button>
+    <p class="rnd"><button type="button" data-random>или просто удиви меня ↻</button></p>
     <section class="sec" id="banner"></section>
     <section class="sec" id="shelfHome" hidden></section>
 
@@ -1233,6 +1237,12 @@ body::after { content: ""; position: fixed; inset: 0; z-index: 40; pointer-event
   document.addEventListener('click', function (e) {
     var t;
     if ((t = e.target.closest('[data-notei]'))) { openNote(NOTES[+t.getAttribute('data-notei')]); return; }
+    if (e.target.closest('[data-random]')) {
+      var sh0 = shelfGet(), pool = quizPool().filter(function (it) { return !doneOnShelf(it, sh0); });
+      var pk = pool[Math.floor(Math.random() * pool.length)];
+      if (pk) { if (pk.id) select(pk.id, true); else openNote(pk.note); }
+      return;
+    }
     if (e.target.closest('[data-quiz]')) { startQuiz(); return; }
     if ((t = e.target.closest('[data-qa]'))) {
       var qq = QUIZ[quiz.step]; if (!qq) return;
