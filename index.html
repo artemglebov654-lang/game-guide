@@ -582,11 +582,11 @@ body::after { content: ""; position: fixed; inset: 0; z-index: 40; pointer-event
     "The Witcher 3: Wild Hunt": ["ведьмак", "ведьмак 3", "дикая охота", "witcher"],
     "Red Dead Redemption 2": ["рдр", "рдр 2", "ред дед", "ред дед редемпшн 2", "red dead"],
     "Fortnite": ["фортнайт", "фортнит"],
-    "Valorant": ["валорант", "валик"],
+    "VALORANT": ["валорант", "валик"],
     "Minecraft": ["майнкрафт", "майн", "майнкрафт"],
     "Cyberpunk 2077": ["киберпанк", "киберпанк 2077", "cyberpunk"],
     "League of Legends": ["лига легенд", "лол", "лига", "lol"],
-    "God of War": ["бог войны", "год оф вар", "год оф вор", "kratos", "кратос"],
+    "God of War (2018)": ["бог войны", "год оф вар", "год оф вор", "kratos", "кратос"],
     "Apex Legends": ["апекс", "апекс легендс"],
     "Horizon Zero Dawn": ["хорайзен", "горизонт", "хорайзон"],
     "Marvel's Spider-Man": ["человек паук", "спайдермен", "спайдер мен", "spider man"],
@@ -616,6 +616,39 @@ body::after { content: ""; position: fixed; inset: 0; z-index: 40; pointer-event
       return names.some(function (x) { return norm(x).indexOf(n) !== -1; });
     }).slice(0, 4);
   }
+  var FEEL = {
+    "Counter-Strike 2": ["матч ~30-40 мин, затягивает надолго", "напряжённо, азартно, нервно после поражений"],
+    "Dota 2": ["матч 35-50 мин", "напряжённо, сложно, требует терпения"],
+    "Grand Theft Auto V": ["сюжет ~30 ч", "дерзко, весело, местами жёстко"],
+    "The Witcher 3: Wild Hunt": ["сюжет ~50 ч, с побочками 100+", "мрачно, атмосферно, взросло"],
+    "Red Dead Redemption 2": ["сюжет ~50 ч", "медленно, красиво, грустно"],
+    "Fortnite": ["матч ~20 мин", "быстро, шумно, соревновательно"],
+    "VALORANT": ["матч ~30-40 мин", "напряжённо, командно, требует точности"],
+    "Minecraft": ["нет конца, на твой вкус", "спокойно и творчески, либо выживание"],
+    "Cyberpunk 2077": ["сюжет ~25 ч, с побочками 60+", "неон, динамика, мрачная история"],
+    "League of Legends": ["матч ~30-40 мин", "напряжённо, токсично бывает, сложно"],
+    "God of War (2018)": ["сюжет ~20 ч", "серьёзно, эмоционально, мощный экшен"],
+    "Apex Legends": ["матч ~15-20 мин", "быстро, нервно, командно"],
+    "Horizon Zero Dawn": ["сюжет ~25 ч", "красиво, приключенчески, не слишком мрачно"],
+    "Marvel's Spider-Man": ["сюжет ~17 ч", "легко, зрелищно, весело"],
+    "Death Stranding": ["сюжет ~40 ч", "одиноко, медленно, странно"],
+    "Uncharted 4: A Thief's End": ["сюжет ~15 ч", "как кино-приключение, лёгкий драйв"],
+    "BioShock Infinite": ["сюжет ~12 ч", "странно, умно, местами жутко"],
+    "Life is Strange": ["сюжет ~12 ч", "тихо, трогательно, местами грустно"],
+    "Detroit: Become Human": ["сюжет ~12 ч", "как интерактивное кино, много выборов"],
+    "Mass Effect 2": ["сюжет ~25 ч", "космическая опера, командная, приключенческая"],
+    "Control": ["сюжет ~12 ч", "странно, загадочно, напряжённо"],
+    "Metro Exodus": ["сюжет ~20 ч", "постапокалипсис, мрачно, местами тревожно"],
+    "Ghost of Tsushima": ["сюжет ~25 ч", "красиво, спокойно, самурайский экшен"],
+    "Persona 5 Royal": ["сюжет ~100 ч", "стильно, долго, про дружбу и школу"],
+    "Overwatch 2": ["матч ~10-15 мин", "быстро, ярко, командно"],
+    "Rocket League": ["матч 5 мин", "быстро, весело, футбол на машинах"],
+    "PUBG: BATTLEGROUNDS": ["матч ~30 мин", "напряжённо, тактично, долгие тихие паузы"],
+    "Tom Clancy's Rainbow Six Siege": ["раунд ~3 мин, матч ~30 мин", "тактично, нервно, нужна команда"],
+    "Call of Duty: Warzone": ["матч ~20-30 мин", "быстро, напряжённо, шумно"],
+    "Team Fortress 2": ["матч ~15-20 мин", "шумно, смешно, командно"],
+    "Street Fighter 6": ["раунд 2-3 мин, сюжет ~10 ч", "динамично, соревновательно, нужно тренироваться"]
+  };
   function findNote(name, released) {
     var n = norm(name || '');
     for (var i = 0; i < NOTES.length; i++) {
@@ -625,7 +658,9 @@ body::after { content: ""; position: fixed; inset: 0; z-index: 40; pointer-event
     return null;
   }
   function noteBlock(d, n) {
-    return '<section class="sec"><p class="lab">( о чём игра )</p><p class="lead">' + esc(n.about) + '</p></section>' +
+    var f = FEEL[n.n];
+    return '<section class="sec"><p class="lab">( о чём игра )</p><p class="lead">' + esc(n.about) + '</p>' +
+      (f ? '<p class="lab" style="margin-top:1.2rem">( время и настроение, примерно )</p><p class="lead">' + esc(f[0]) + '. ' + esc(f[1].charAt(0).toUpperCase() + f[1].slice(1)) + '.</p>' : '') + '</section>' +
       '<section class="sec"><p class="lab">( зайдёт, если )</p><h2 class="statement">' + esc(n.yes) + '</h2>' +
       '<div class="about one"><div><p><b>Не зайдёт, если:</b> ' + esc(lowerFirst(n.no)) + '</p>' +
       '<a class="more" href="https://rawg.io/games/' + esc(d.slug) + '" target="_blank" rel="noopener">открыть на rawg ↗</a></div></div></section>';
