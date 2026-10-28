@@ -52,6 +52,9 @@ for (const [id, g] of games) {
 </head><body style="background:#0d0d0f;color:#ebebe8;font-family:sans-serif;padding:2rem"><a style="color:inherit" href="../../${g.hash}">${esc(g.name)}: открыть в путеводнике</a></body></html>
 `);
 }
+const urls = [SITE, ...[...games.keys()].map((id) => SITE + 'g/' + id + '/')];
+writeFileSync('sitemap.xml', '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' + urls.map((u) => '  <url><loc>' + u + '</loc></url>').join('\n') + '\n</urlset>\n');
+writeFileSync('robots.txt', 'User-agent: *\nAllow: /\nSitemap: ' + SITE + 'sitemap.xml\n');
 data.pages = Object.fromEntries([...games].map(([id, g]) => [id, 1]));
 writeFileSync('data.json', JSON.stringify(data));
 console.log('pages written:', games.size);

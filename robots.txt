@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://artemglebov654-lang.github.io/game-guide/sitemap.xml
