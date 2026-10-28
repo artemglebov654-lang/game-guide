@@ -75,5 +75,23 @@ try {
   data.fresh = (d.results || []).map(slim);
 } catch (e) { console.warn('fresh', e.message); data.fresh = old.fresh || null; }
 
+// Цены: CheapShark (бесплатно, без ключа). Берём только точное совпадение названия, чтобы не показать цену чужой игры.
+data.prices = {};
+const names = [...new Set([...GAMES.map((g) => g.title), ...Object.values(CUR).flat()])];
+const PRICE_ALIAS = { 'God of War 2018': 'God of War', 'VALORANT': '' };
+for (const name of names) {
+  const q = name in PRICE_ALIAS ? PRICE_ALIAS[name] : name;
+  if (!q) continue;
+  try {
+    const r = await fetch('https://www.cheapshark.com/api/1.0/games?limit=10&title=' + encodeURIComponent(q));
+    if (!r.ok) throw new Error('status ' + r.status);
+    const list = await r.json();
+    const hit = (Array.isArray(list) ? list : []).find((x) => norm(x.external || '') === norm(q));
+    if (hit && hit.cheapest && hit.cheapestDealID) data.prices[norm(name)] = { p: String(hit.cheapest), d: hit.cheapestDealID };
+    await sleep(300);
+  } catch (e) { console.warn('price', name, e.message); }
+}
+if (!Object.keys(data.prices).length && old.prices) data.prices = old.prices;
+
 writeFileSync('data.json', JSON.stringify(data));
 console.log('data.json written:', Object.keys(data.games).length, 'games,', Object.values(data.curated).reduce((a, l) => a + l.length, 0), 'curated');

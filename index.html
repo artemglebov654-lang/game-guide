@@ -310,7 +310,7 @@ body::after { content: ""; position: fixed; inset: 0; z-index: 40; pointer-event
   <footer class="foot" id="about">
     <p>Путеводник помогает выбрать игру по настроению и не тратить вечер на поиски.</p>
     <p>Время и настроение указаны примерно, а «зайдёт или не зайдёт» это личное мнение автора, а не официальные оценки.</p>
-    <p>Данные и изображения: <a href="https://rawg.io" target="_blank" rel="noopener">RAWG</a></p>
+    <p>Данные и изображения: <a href="https://rawg.io" target="_blank" rel="noopener">RAWG</a>. Цены: <a href="https://www.cheapshark.com" target="_blank" rel="noopener">CheapShark</a></p>
   </footer>
 </div>
 
@@ -394,7 +394,7 @@ body::after { content: ""; position: fixed; inset: 0; z-index: 40; pointer-event
     paintTheme();
   });
   paintTheme();
-  var PRE = { games: {}, curated: {}, catalog: null, fresh: null }; /* заранее собранные данные из data.json */
+  var PRE = { prices: {}, games: {}, curated: {}, catalog: null, fresh: null }; /* заранее собранные данные из data.json */
   var matches = [], items = [], active = -1, current = null, openToken = 0, seq = 0, timer = null;
   var remote = { q: '', status: 'idle', list: [] };
 
@@ -673,6 +673,13 @@ body::after { content: ""; position: fixed; inset: 0; z-index: 40; pointer-event
     "Team Fortress 2": ["матч ~15-20 мин", "шумно, смешно, командно"],
     "Street Fighter 6": ["раунд 2-3 мин, сюжет ~10 ч", "динамично, соревновательно, нужно тренироваться"]
   };
+  /* цена из data.json (собирает ночной скрипт через CheapShark); если цены нет, строки просто не будет */
+  function priceRow(name) {
+    var p = PRE.prices[norm(name)];
+    if (!p || !/^\d+(\.\d+)?$/.test(p.p) || !/^[A-Za-z0-9%]+$/.test(p.d)) return '';
+    return '<li><span>цена в магазинах</span><span class="v"><a href="https://www.cheapshark.com/redirect?dealID=' + p.d + '" target="_blank" rel="noopener">от $' + p.p + ' ↗</a></span></li>' +
+      '<li><span></span><span class="v" style="font-weight:400;color:var(--muted);font-size:12px">в долларах, по данным CheapShark; в твоём регионе может отличаться</span></li>';
+  }
   function findNote(name, released) {
     var n = norm(name || '');
     for (var i = 0; i < NOTES.length; i++) {
@@ -847,7 +854,7 @@ body::after { content: ""; position: fixed; inset: 0; z-index: 40; pointer-event
           '<li><span>по 2 часа в день</span><span class="v">~' + ev + ' ' + plural(ev) + '</span></li>' +
           '<li><span>жанр</span><span class="v">' + esc(g.genre) + '</span></li>' +
           '<li><span>платформы</span><span class="v">' + esc(g.plat) + '</span></li>' +
-          '<li><span>цены и скидки</span><span class="v" style="font-weight:400;color:var(--muted)">скоро</span></li></ul></div>' +
+          priceRow(g.title) + '</ul></div>' +
         '<div><p class="lab">( настроение )</p><ul class="rows" id="moods">' + moods + '</ul></div></section>' +
 
       videoBox(g.title) +
@@ -891,7 +898,7 @@ body::after { content: ""; position: fixed; inset: 0; z-index: 40; pointer-event
         '<a class="more" href="https://rawg.io/games/' + esc(d.slug) + '" target="_blank" rel="noopener">открыть на rawg ↗</a></div></div></section>') +
 
       '<section class="sec"><p class="lab">( маршрут )</p><ul class="rows">' +
-        rows.map(function (r) { return '<li><span>' + r[0] + '</span><span class="v">' + esc(r[1]) + '</span></li>'; }).join('') + '</ul></section>' +
+        rows.map(function (r) { return '<li><span>' + r[0] + '</span><span class="v">' + esc(r[1]) + '</span></li>'; }).join('') + priceRow(d.name) + '</ul></section>' +
 
       videoBox(d.name) +
 
@@ -1341,7 +1348,7 @@ body::after { content: ""; position: fixed; inset: 0; z-index: 40; pointer-event
 
   /* ---------- boot ---------- */
   fetch('data.json').then(function (r) { return r.ok ? r.json() : null; }).then(function (d) {
-    if (d) { PRE.games = d.games || {}; PRE.curated = d.curated || {}; PRE.catalog = d.catalog || null; PRE.fresh = d.fresh || null; PRE.pages = d.pages || {}; }
+    if (d) { PRE.games = d.games || {}; PRE.curated = d.curated || {}; PRE.catalog = d.catalog || null; PRE.fresh = d.fresh || null; PRE.pages = d.pages || {}; PRE.prices = d.prices || {}; }
   }).catch(function () { /* без data.json работаем напрямую через RAWG */ }).then(function () {
     renderHome(true);
     GAMES.forEach(function (g) { resolve(g).then(function () { applyImg(g); }); });
