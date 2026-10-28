@@ -674,7 +674,12 @@ body::after { content: ""; position: fixed; inset: 0; z-index: 40; pointer-event
     "Street Fighter 6": ["раунд 2-3 мин, сюжет ~10 ч", "динамично, соревновательно, нужно тренироваться"]
   };
   /* цена из data.json (собирает ночной скрипт через CheapShark); если цены нет, строки просто не будет */
+  var FREE = ['dota 2', 'counter strike 2', 'fortnite', 'valorant', 'league of legends', 'apex legends', 'overwatch 2', 'rocket league', 'pubg battlegrounds', 'call of duty warzone', 'team fortress 2'];
   function priceRow(name) {
+    if (FREE.indexOf(norm(name)) !== -1) {
+      return '<li><span>цена</span><span class="v">бесплатно</span></li>' +
+        '<li><span></span><span class="v" style="font-weight:400;color:var(--muted);font-size:12px">free-to-play: играть можно без оплаты, внутри бывают платные покупки</span></li>';
+    }
     var p = PRE.prices[norm(name)];
     if (!p || !/^\d+(\.\d+)?$/.test(p.p) || !/^[A-Za-z0-9%]+$/.test(p.d)) return '';
     return '<li><span>цена в магазинах</span><span class="v"><a href="https://www.cheapshark.com/redirect?dealID=' + p.d + '" target="_blank" rel="noopener">от $' + p.p + ' ↗</a></span></li>' +
