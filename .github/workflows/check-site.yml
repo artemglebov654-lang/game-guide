@@ -16,3 +16,9 @@ jobs:
         with:
           node-version: 20
       - run: node scripts/check-site.mjs --net
+      - name: Install browser for smoke test
+        run: |
+          npm install --no-save playwright
+          npx playwright install --with-deps chromium
+      - name: Smoke test (opens the site and walks through the main scenarios)
+        run: node scripts/smoke-test.cjs

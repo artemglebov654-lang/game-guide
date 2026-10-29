@@ -1277,6 +1277,7 @@ body::after { content: ""; position: fixed; inset: 0; z-index: 40; pointer-event
     if ((m = /^#g\/([a-z0-9]+)$/.exec(h)) && BY[m[1]]) { if (boot) view = 'game'; select(m[1]); return true; }
     if ((m = /^#r\/(\d+)$/.exec(h))) { if (boot) view = 'game'; selectRemote(+m[1], '', false); return true; }
     if (h === '#quiz') { if (boot) view = 'game'; startQuiz(); return true; }
+    if ((m = /^#compare\/([^~]+)~(.+)$/.exec(h))) { if (boot) view = 'game'; try { startCompare(decodeURIComponent(m[1]), decodeURIComponent(m[2])); } catch (e) { startCompare(); } return true; }
     if (h === '#compare') { if (boot) view = 'game'; startCompare(); return true; }
     if (h === '#evening') { if (boot) view = 'game'; startEvening(); return true; }
     if (h === '#taste') { if (boot) view = 'game'; startTaste(); return true; }
@@ -1443,7 +1444,7 @@ body::after { content: ""; position: fixed; inset: 0; z-index: 40; pointer-event
 
 
   /* ---------- инструменты: сравнение, «на вечер», «мой вкус» ---------- */
-  var tool = { list: [], ev: -1, a: '', b: '' };
+  var tool = { list: [], ev: -1, who: '', a: '', b: '' };
   function openEntry(it) {
     if (!it) return;
     if (it.id) select(it.id, true); else if (it.rid) selectRemote(it.rid, it.name, true); else if (it.note) openNote(it.note);
@@ -1538,6 +1539,7 @@ body::after { content: ""; position: fixed; inset: 0; z-index: 40; pointer-event
   function drawCompare() {
     var box = document.getElementById('cmpOut'); if (!box) return;
     var A = entryByText(tool.a), B = entryByText(tool.b);
+    try { history.replaceState({ v: 'game' }, '', (A && B && A !== B) ? '#compare/' + encodeURIComponent(A.name) + '~' + encodeURIComponent(B.name) : '#compare'); } catch (e) { /* ок */ }
     if (!A || !B) { box.innerHTML = '<p class="note2">' + ((tool.a || tool.b) ? 'Начни вводить название и выбери игру из списка: сравнить можно игры с авторскими заметками.' : 'Или нажми на готовую пару ниже.') + '</p>'; return; }
     if (A === B) { box.innerHTML = '<p class="note2">Это одна и та же игра, выбери разные.</p>'; return; }
     tool.list = [A, B];
@@ -1555,7 +1557,9 @@ body::after { content: ""; position: fixed; inset: 0; z-index: 40; pointer-event
   function drawEvening() {
     var body = '<section class="sec"><p class="lab">( что сыграть на вечер )</p><h2 class="statement">Сколько у тебя времени?</h2><div class="opts">' +
       EV.map(function (e, i) { return '<button type="button" class="opt" data-ev="' + i + '"' + (tool.ev === i ? ' aria-pressed="true"' : '') + '>' + esc(e[0]) + '<small style="display:block;opacity:.65;font-size:.8em">' + esc(e[1]) + '</small></button>'; }).join('') +
-      '</div><div id="evOut"></div></section>';
+      '</div><p class="tags"><span class="m">кто играет:</span>' + [['', 'любой'], ['solo', 'один'], ['multi', 'с друзьями']].map(function (w) {
+        return '<button type="button" class="tag2" data-evwho="' + w[0] + '" aria-pressed="' + (tool.who === w[0]) + '">' + w[1] + '</button>';
+      }).join('') + '</p><div id="evOut"></div></section>';
     var y0 = window.scrollY;
     toolShell('#evening', 'Что сыграть на вечер', body);
     if (tool.ev >= 0) { drawEveningList(); window.scrollTo(0, y0); }
@@ -1564,6 +1568,7 @@ body::after { content: ""; position: fixed; inset: 0; z-index: 40; pointer-event
     var box = document.getElementById('evOut'); if (!box) return;
     var pool = notOnShelf(realPool()).map(function (it) { it.hr = hoursOf(it); return it; }), res, label;
     var b = tool.ev;
+    if (tool.who) pool = pool.filter(function (it) { return (' ' + it.t + ' ').indexOf(' ' + tool.who + ' ') !== -1; });
     if (b === 0) res = pool.filter(function (it) { return it.hr.kind === 'endless' || (it.hr.kind === 'session' && it.hr.min <= 60); });
     else if (b === 1) res = pool.filter(function (it) { return it.hr.kind === 'story' && it.hr.h <= 12; });
     else if (b === 2) res = pool.filter(function (it) { return it.hr.kind === 'story' && it.hr.h > 12 && it.hr.h <= 30; });
@@ -1654,6 +1659,7 @@ body::after { content: ""; position: fixed; inset: 0; z-index: 40; pointer-event
     }
     if ((t = e.target.closest('[data-tpick]'))) { openEntry(tool.list[+t.getAttribute('data-tpick')]); return; }
     if ((t = e.target.closest('[data-cmppair]'))) { var pr = PAIRS[+t.getAttribute('data-cmppair')]; startCompare(pr[0], pr[1]); return; }
+    if ((t = e.target.closest('[data-evwho]'))) { tool.who = t.getAttribute('data-evwho'); drawEvening(); return; }
     if ((t = e.target.closest('[data-ev]'))) { tool.ev = +t.getAttribute('data-ev'); drawEvening(); return; }
     if (e.target.closest('[data-evmore]')) { drawEveningList(); return; }
     if (e.target.closest('[data-random]')) {
