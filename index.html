@@ -310,7 +310,7 @@ body::after { content: ""; position: fixed; inset: 0; z-index: 40; pointer-event
   <main id="out" aria-live="polite" hidden></main>
 
   <footer class="foot" id="about">
-    <p>Путеводник помогает выбрать игру по настроению и не тратить вечер на поиски.</p>
+    <p>Путеводник помогает выбрать игру по настроению и не тратить вечер на поиски. Это личный проект: описания, время, настроение и «зайдёт или не зайдёт» написаны вручную и отражают мнение автора, а данные об играх, картинки и цены подтягиваются автоматически каждую ночь. <a href="https://github.com/artemglebov654-lang/game-guide" target="_blank" rel="noopener">Исходный код</a></p>
     <p>Время и настроение указаны примерно, а «зайдёт или не зайдёт» это личное мнение автора, а не официальные оценки.</p>
     <p>Данные и изображения: <a href="https://rawg.io" target="_blank" rel="noopener">RAWG</a>. Цены: <a href="https://www.cheapshark.com" target="_blank" rel="noopener">CheapShark</a></p>
   </footer>
@@ -534,6 +534,7 @@ body::after { content: ""; position: fixed; inset: 0; z-index: 40; pointer-event
     putImg(out.querySelector('.thumb[data-id="' + g.id + '"] .art'), sized(src, 600, 400), src, true);
     if (current && current.id === g.id) { putImg(out.querySelector('.hero'), sized(src, 1280), src); setAmbient(sized(src, 420), src); }
     putImg(document.querySelector('#banner .art[data-gid="' + g.id + '"]'), sized(src, 1280), src);
+    if (view === 'home' && document.querySelector('#banner .art[data-gid="' + g.id + '"]')) setAmbient(sized(src, 420), src);
   }
   function applyAll() { GAMES.forEach(applyImg); }
 
@@ -1211,7 +1212,10 @@ body::after { content: ""; position: fixed; inset: 0; z-index: 40; pointer-event
     if (it.id) applyImg(BY[it.id]);
     else {
       var sl = slimByNote(it.note);
-      if (sl && sl.background_image) putImg(box.querySelector('.art[data-bn]'), sized(sl.background_image, 1280), sl.background_image);
+      if (sl && sl.background_image) {
+        putImg(box.querySelector('.art[data-bn]'), sized(sl.background_image, 1280), sl.background_image);
+        if (view === 'home') setAmbient(sized(sl.background_image, 420), sl.background_image);
+      }
     }
   }
   function renderHome(first) {
