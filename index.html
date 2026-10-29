@@ -211,7 +211,8 @@ a { color: inherit; }
 .rnd button { padding: 0; font: inherit; color: var(--muted); background: none; border: 0; border-bottom: 1px solid var(--line); cursor: pointer; }
 .rnd button:hover { color: var(--fg); }
 .tools { display: grid; gap: 10px; margin-top: 18px; grid-template-columns: 1fr; }
-@media (min-width: 720px) { .tools { grid-template-columns: repeat(3, 1fr); } }
+@media (min-width: 720px) { .tools { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 1000px) { .tools { grid-template-columns: repeat(4, 1fr); } }
 .tools button { display: flex; flex-direction: column; gap: 4px; text-align: left; padding: 16px 18px; border: 1px solid var(--line); background: var(--surface); transition: border-color .2s, transform .2s; }
 .tools button:hover { border-color: var(--fg); transform: translateY(-2px); }
 .tools b { font-size: 17px; letter-spacing: -.02em; }
@@ -314,6 +315,7 @@ body::after { content: ""; position: fixed; inset: 0; z-index: 40; pointer-event
       <button type="button" data-tool="compare"><b>Сравнить две игры</b><span>время, цена и характер рядом</span></button>
       <button type="button" data-tool="evening"><b>Что сыграть на вечер</b><span>по тому, сколько у тебя времени</span></button>
       <button type="button" data-tool="taste"><b>Мой игровой вкус</b><span>портрет по твоей полке</span></button>
+      <button type="button" data-tool="guess"><b>Угадай игру</b><span>по описанию, 5 вопросов</span></button>
     </div>
     <section class="sec" id="banner"></section>
     <section class="sec" id="shelfHome" hidden></section>
@@ -1289,6 +1291,7 @@ body::after { content: ""; position: fixed; inset: 0; z-index: 40; pointer-event
     if (h === '#compare') { if (boot) view = 'game'; startCompare(); return true; }
     if (h === '#evening') { if (boot) view = 'game'; startEvening(); return true; }
     if (h === '#taste') { if (boot) view = 'game'; startTaste(); return true; }
+    if (h === '#guess') { if (boot) view = 'game'; startGuess(); return true; }
     return false;
   }
 
@@ -1592,6 +1595,51 @@ body::after { content: ""; position: fixed; inset: 0; z-index: 40; pointer-event
     fillPickImages(res);
   }
 
+
+  /* --- угадай игру --- */
+  var guess = { qs: [], i: 0, score: 0, done: false, pick: -1 };
+  function aboutOf(it) { return it.own ? (ABOUT[it.id] || '') : (it.note ? it.note.about : ''); }
+  function guessPool() {
+    return realPool().filter(function (it) {
+      var a = norm(aboutOf(it));
+      if (a.length < 60) return false;
+      var words = norm(it.name).split(' ').filter(function (w) { return w.length >= 5; });
+      return !words.some(function (w) { return a.indexOf(w) !== -1; });
+    });
+  }
+  function startGuess() {
+    var pool = guessPool().sort(function () { return Math.random() - 0.5; }), all = realPool();
+    guess = { qs: pool.slice(0, 5).map(function (it) {
+      var others = all.filter(function (o) { return o !== it; }).sort(function () { return Math.random() - 0.5; }).slice(0, 3);
+      var opts = others.concat([it]).sort(function () { return Math.random() - 0.5; });
+      return { it: it, opts: opts };
+    }), i: 0, score: 0, done: false, pick: -1 };
+    drawGuess();
+  }
+  function drawGuess() {
+    var g = guess, n = g.qs.length, body;
+    if (g.i >= n) {
+      var msg = g.score === n ? 'Знаток. Тебя не обмануть.' : g.score >= 3 ? 'Хороший результат.' : g.score >= 1 ? 'Неплохо, но есть куда расти.' : 'Ни одной? Сайт будет подсказывать лучше.';
+      body = '<section class="sec"><p class="lab">( угадай игру )</p><h2 class="statement">' + g.score + ' из ' + n + '. ' + msg + '</h2>' +
+        '<button type="button" class="more" data-gshare>поделиться результатом ↗</button> <button type="button" class="more" data-gagain>сыграть ещё раз ↻</button></section>';
+      toolShell('#guess', 'Угадай игру', body); return;
+    }
+    var q0 = g.qs[g.i], answered = g.pick >= 0;
+    var bar = ''; for (var k = 0; k < n; k++) bar += '<i class="' + (k <= g.i ? 'on' : '') + '"></i>';
+    body = '<section class="sec"><div class="qbar">' + bar + '</div><p class="lab">( угадай игру · вопрос ' + (g.i + 1) + ' из ' + n + ' )</p>' +
+      '<p class="lead">' + esc(aboutOf(q0.it)) + '</p><div class="opts">' +
+      q0.opts.map(function (o, i) {
+        var cls = 'opt', st = '';
+        if (answered) { if (o === q0.it) st = ' style="background:var(--fg);color:var(--bg)"'; else if (i === g.pick) st = ' style="opacity:.45;text-decoration:line-through"'; }
+        return '<button type="button" class="' + cls + '" data-gopt="' + i + '"' + (answered ? ' disabled' : '') + st + '>' + esc(o.name) + '</button>';
+      }).join('') + '</div>' +
+      (answered ? '<p class="note2" style="font-size:15px">' + (q0.opts[g.pick] === q0.it ? 'Верно!' : 'Не угадал. Это ' + esc(q0.it.name) + '.') + '</p>' +
+        '<button type="button" class="more" data-gnext>' + (g.i + 1 < n ? 'дальше →' : 'результат →') + '</button> <button type="button" class="more" data-gopen>открыть карточку игры</button>' : '') + '</section>';
+    var y0 = window.scrollY;
+    toolShell('#guess', 'Угадай игру', body);
+    if (answered) window.scrollTo(0, y0);
+  }
+
   /* --- мой игровой вкус --- */
   var PH = { calm: 'спокойные игры, где можно не спешить', tense: 'напряжение и вызов', story: 'сюжет и персонажи', open: 'большие открытые миры', fight: 'бои и испытания', comp: 'соревнования и онлайн', chill: 'творчество и спокойное занятие', solo: 'играть в одиночку', multi: 'играть с друзьями', dark: 'мрачная взрослая атмосфера', bright: 'яркая лёгкая атмосфера', hard: 'сложные игры', easy: 'игры без нервов', short: 'короткие игры', long: 'долгие игры на десятки часов', shoot: 'стрельба' };
   function startTaste() {
@@ -1661,8 +1709,18 @@ body::after { content: ""; position: fixed; inset: 0; z-index: 40; pointer-event
     if ((t = e.target.closest('[data-notei]'))) { openNote(NOTES[+t.getAttribute('data-notei')]); return; }
     if ((t = e.target.closest('[data-tool]'))) {
       var tn = t.getAttribute('data-tool');
-      if (tn === 'compare') startCompare(); else if (tn === 'evening') startEvening(); else if (tn === 'taste') startTaste();
+      if (tn === 'guess') startGuess(); else if (tn === 'compare') startCompare(); else if (tn === 'evening') startEvening(); else if (tn === 'taste') startTaste();
       else if (tn === 'random') { var rp = realPool(), rk = rp[Math.floor(Math.random() * rp.length)]; openEntry(rk); }
+      return;
+    }
+    if ((t = e.target.closest('[data-gopt]'))) { if (guess.pick < 0) { guess.pick = +t.getAttribute('data-gopt'); if (guess.qs[guess.i].opts[guess.pick] === guess.qs[guess.i].it) guess.score++; drawGuess(); } return; }
+    if (e.target.closest('[data-gnext]')) { guess.i++; guess.pick = -1; drawGuess(); window.scrollTo(0, 0); return; }
+    if (e.target.closest('[data-gopen]')) { openEntry(guess.qs[guess.i].it); return; }
+    if (e.target.closest('[data-gagain]')) { startGuess(); return; }
+    if ((t = e.target.closest('[data-gshare]'))) {
+      var gt = 'Я угадал ' + guess.score + ' из ' + guess.qs.length + ' в «Угадай игру»: ' + location.href.split('#')[0] + '#guess';
+      if (navigator.share) navigator.share({ text: gt }).catch(function () { /* отмена */ });
+      else if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(gt).then(function () { t.textContent = 'скопировано'; });
       return;
     }
     if ((t = e.target.closest('[data-tpick]'))) { openEntry(tool.list[+t.getAttribute('data-tpick')]); return; }

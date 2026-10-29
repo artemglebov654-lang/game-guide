@@ -35,7 +35,7 @@ const check = (ok, msg) => { if (!ok) failures.push(msg); console.log((ok ? 'ok 
 
   await go();
   check((await text()).includes('путеводник'), 'главная открывается');
-  check((await page.$$('.tools button')).length === 3, 'на главной три плитки инструментов');
+  check((await page.$$('.tools button')).length === 4, 'на главной четыре плитки инструментов');
 
   await page.fill('input', 'ведьмак'); await page.waitForTimeout(450);
   check((await page.$$eval('[role=listbox] li', (l) => l.map((x) => x.innerText).join(' '))).includes('Witcher 3'), 'поиск по-русски находит «Ведьмака»');
@@ -62,6 +62,11 @@ const check = (ok, msg) => { if (!ok) failures.push(msg); console.log((ok ? 'ok 
   await page.evaluate(() => localStorage.setItem('gg2:shelf', JSON.stringify({ 'g:sdv': { s: 'played', n: 'Stardew Valley', t: 1 }, 'g:portal': { s: 'played', n: 'Portal 2', t: 2 }, 'g:hades': { s: 'want', n: 'Hades', t: 3 } })));
   await go('#taste');
   check((await page.$$('.pick li')).length === 5, '«вкус» с полкой показывает 5 рекомендаций');
+
+  await go('#guess');
+  check((await page.$$('[data-gopt]')).length === 4, '«угадай игру»: у вопроса четыре варианта');
+  for (let i = 0; i < 5; i++) { await page.click('[data-gopt="0"]'); await page.waitForTimeout(80); await page.click('[data-gnext]'); await page.waitForTimeout(80); }
+  check((await text()).includes('из 5'), '«угадай игру»: после 5 вопросов показан результат');
 
   await go();
   const before = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
