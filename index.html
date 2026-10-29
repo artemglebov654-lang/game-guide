@@ -202,6 +202,23 @@ a { color: inherit; }
 .rnd { margin: 14px 0 0; font-size: 14px; }
 .rnd button { padding: 0; font: inherit; color: var(--muted); background: none; border: 0; border-bottom: 1px solid var(--line); cursor: pointer; }
 .rnd button:hover { color: var(--fg); }
+.tools { display: grid; gap: 10px; margin-top: 18px; grid-template-columns: 1fr; }
+@media (min-width: 720px) { .tools { grid-template-columns: repeat(3, 1fr); } }
+.tools button { display: flex; flex-direction: column; gap: 4px; text-align: left; padding: 16px 18px; border: 1px solid var(--line); background: var(--surface); transition: border-color .2s, transform .2s; }
+.tools button:hover { border-color: var(--fg); transform: translateY(-2px); }
+.tools b { font-size: 17px; letter-spacing: -.02em; }
+.tools span { font-size: 13px; color: var(--muted); }
+.cmpIn { display: grid; grid-template-columns: 1fr; gap: 8px; align-items: center; margin: 22px 0 12px; max-width: 760px; }
+.cmpIn span { color: var(--muted); font-size: 13px; text-align: center; }
+.cmpIn input { width: 100%; font: inherit; font-size: 17px; color: inherit; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 13px 16px; }
+.cmpIn input:focus { outline: none; border-color: var(--fg); }
+@media (min-width: 720px) { .cmpIn { grid-template-columns: 1fr auto 1fr; } }
+.cmp { margin-top: 22px; border-top: 1px solid var(--fg); }
+.cmpH, .cmpR { display: grid; grid-template-columns: 76px 1fr 1fr; gap: 14px; padding: 12px 0; border-bottom: 1px solid var(--line); align-items: start; }
+.cmpH button { text-align: left; font-weight: 800; letter-spacing: -.02em; font-size: clamp(15px, 2.4vw, 22px); }
+.cmpR span:not(.lab) { font-size: 14px; line-height: 1.4; }
+.cmpR .lab { font-size: 11px; margin: 0; }
+.opt[aria-pressed="true"] { background: var(--fg); color: var(--bg); }
 .note2 { font-size: 12px; color: var(--muted); margin: 14px 0 0; }
 .cta { background: var(--fg); color: var(--bg); }
 .cta:hover { background: var(--surface); color: var(--fg); }
@@ -285,6 +302,11 @@ body::after { content: ""; position: fixed; inset: 0; z-index: 40; pointer-event
     <div class="chips" id="chips"></div>
     <button type="button" class="cta" data-quiz><span>Не знаешь, во что играть?</span><b>подобрать за 7 вопросов →</b></button>
     <p class="rnd"><button type="button" data-random>или просто удиви меня ↻</button></p>
+    <div class="tools">
+      <button type="button" data-tool="compare"><b>Сравнить две игры</b><span>время, цена и характер рядом</span></button>
+      <button type="button" data-tool="evening"><b>Что сыграть на вечер</b><span>по тому, сколько у тебя времени</span></button>
+      <button type="button" data-tool="taste"><b>Мой игровой вкус</b><span>портрет по твоей полке</span></button>
+    </div>
     <section class="sec" id="banner"></section>
     <section class="sec" id="shelfHome" hidden></section>
 
@@ -1255,6 +1277,9 @@ body::after { content: ""; position: fixed; inset: 0; z-index: 40; pointer-event
     if ((m = /^#g\/([a-z0-9]+)$/.exec(h)) && BY[m[1]]) { if (boot) view = 'game'; select(m[1]); return true; }
     if ((m = /^#r\/(\d+)$/.exec(h))) { if (boot) view = 'game'; selectRemote(+m[1], '', false); return true; }
     if (h === '#quiz') { if (boot) view = 'game'; startQuiz(); return true; }
+    if (h === '#compare') { if (boot) view = 'game'; startCompare(); return true; }
+    if (h === '#evening') { if (boot) view = 'game'; startEvening(); return true; }
+    if (h === '#taste') { if (boot) view = 'game'; startTaste(); return true; }
     return false;
   }
 
@@ -1321,8 +1346,8 @@ body::after { content: ""; position: fixed; inset: 0; z-index: 40; pointer-event
   var quiz = { step: 0, ans: {}, list: [], shown: 5, hidden: 0 };
   function quizPool() {
     var pool = [], seenRid = {};
-    GAMES.forEach(function (g) { pool.push({ name: g.title, t: g.t + ' ' + (TAGX[g.id] || ''), yes: g.yes, id: g.id, img: g.rawg && g.rawg.img, key: 'g:' + g.id }); });
-    NOTES.forEach(function (n) { pool.push({ name: n.n, t: n.t + ' ' + (TAGX[n.n] || ''), yes: n.yes, note: n }); });
+    GAMES.forEach(function (g) { pool.push({ name: g.title, t: g.t + ' ' + (TAGX[g.id] || ''), yes: g.yes, no: g.no, own: g, id: g.id, img: g.rawg && g.rawg.img, key: 'g:' + g.id }); });
+    NOTES.forEach(function (n) { pool.push({ name: n.n, t: n.t + ' ' + (TAGX[n.n] || ''), yes: n.yes, no: n.no, note: n }); });
     [PRE.catalog, PRE.fresh].forEach(function (L) {
       (L || []).forEach(function (r) {
         if (!r || seenRid[r.id] || findNote(r.name, r.released)) return;
@@ -1334,7 +1359,7 @@ body::after { content: ""; position: fixed; inset: 0; z-index: 40; pointer-event
     });
     return pool;
   }
-  var WHY = { calm: 'спокойно', tense: 'напряжённо', short: 'недолго', mid: 'на месяц', long: 'надолго', solo: 'одному', multi: 'с друзьями', story: 'сюжет', open: 'большой мир', fight: 'бои', comp: 'соревнования', chill: 'творчество и покой', dark: 'мрачная атмосфера', bright: 'яркая атмосфера', hard: 'вызов', easy: 'без нервов' };
+  var WHY = { calm: 'спокойно', tense: 'напряжённо', short: 'недолго', mid: 'на месяц', long: 'надолго', solo: 'одному', multi: 'с друзьями', story: 'сюжет', open: 'большой мир', fight: 'бои', comp: 'соревнования', chill: 'творчество и покой', dark: 'мрачная атмосфера', bright: 'яркая атмосфера', hard: 'вызов', easy: 'без нервов', shoot: 'стрельба' };
   function quizScore(it, a) {
     var t = ' ' + it.t + ' ', sc = 0, max = 0, why = [];
     function has(x) { return t.indexOf(' ' + x + ' ') !== -1; }
@@ -1416,6 +1441,183 @@ body::after { content: ""; position: fixed; inset: 0; z-index: 40; pointer-event
     });
   }
 
+
+  /* ---------- инструменты: сравнение, «на вечер», «мой вкус» ---------- */
+  var tool = { list: [], ev: -1, a: '', b: '' };
+  function openEntry(it) {
+    if (!it) return;
+    if (it.id) select(it.id, true); else if (it.rid) selectRemote(it.rid, it.name, true); else if (it.note) openNote(it.note);
+  }
+  function toolShell(hash, title, body) {
+    setAmbient(''); showGame(hash); current = null; markCurrent(); closeList(); q.value = '';
+    document.title = title + ' · Путеводник';
+    out.innerHTML = BACK + body; window.scrollTo(0, 0);
+  }
+  function realPool() { return quizPool().filter(function (it) { return !it.extra; }); }
+  function tagWords(t) {
+    var w = [], seen = {};
+    (' ' + t + ' ').split(' ').forEach(function (x) { if (x && WHY[x] && !seen[x]) { seen[x] = 1; w.push(WHY[x]); } });
+    return w.join(', ');
+  }
+  function priceShort(name) {
+    var n = norm(name);
+    if (FREE.indexOf(n) !== -1) return 'бесплатно';
+    var p = PRE.prices[n];
+    if (p && p.r && isFinite(p.r.p)) return Number(p.r.p).toLocaleString('ru-RU') + ' ₽' + (p.r.d > 0 ? ' (−' + Math.round(p.r.d) + '%)' : '');
+    if (p && /^\d+(\.\d+)?$/.test(p.p)) return 'от $' + p.p;
+    return 'нет данных';
+  }
+  function timeText(it) {
+    if (it.own) return 'сюжет ~' + it.own.main + ' ч, на 100% ~' + it.own.full + ' ч';
+    var f = FEEL[it.name];
+    return f ? f[0] : 'нет данных';
+  }
+  function moodText(it) {
+    var f = it.note && FEEL[it.name];
+    return f ? f[1] : tagWords(it.t);
+  }
+  /* время в цифрах для «на вечер»: story/h = часы прохождения, session/min = длина партии, endless = без конца */
+  function hoursOf(it) {
+    if (it.own) return { kind: 'story', h: it.own.main };
+    var f = FEEL[it.name]; if (!f) return { kind: 'endless' };
+    var s0 = f[0], m;
+    if ((m = /(?:сюжет|кампания|боссы)[^~]*~(\d+)/.exec(s0))) return { kind: 'story', h: +m[1] };
+    if ((m = /(\d+)(?:-(\d+))?\s*мин/.exec(s0))) return { kind: 'session', min: +(m[2] || m[1]) };
+    if ((m = /(\d+)(?:-(\d+))?\s*ч/.exec(s0))) return { kind: 'story', h: +m[1] };
+    return { kind: 'endless' };
+  }
+  function entryByText(text) {
+    var n = norm(text), pool = realPool(), i;
+    if (!n) return null;
+    for (i = 0; i < pool.length; i++) if (norm(pool[i].name) === n) return pool[i];
+    for (i = 0; i < pool.length; i++) {
+      var names = [pool[i].name].concat(pool[i].own ? pool[i].own.alias : (RU[pool[i].name] || []));
+      if (names.some(function (x) { return norm(x) === n; })) return pool[i];
+    }
+    for (i = 0; i < pool.length; i++) if (norm(pool[i].name).indexOf(n) !== -1) return pool[i];
+    return null;
+  }
+  function pickList(items, withMeta) {
+    tool.list = items;
+    return '<ul class="pick">' + items.map(function (it, i) {
+      return '<li><button type="button" data-tpick="' + i + '"><div class="art" data-ti="' + i + '" style="--bg-art: hsl(0 0% 16%); --cx:50%; --cy:50%"></div>' +
+        '<span><b>' + esc(it.name) + '</b>' + (withMeta ? '<em>' + esc(withMeta(it)) + '</em>' : '') + '<em>Зайдёт, если ' + esc(lowerFirst(it.yes)) + '</em></span><span class="go2">→</span></button></li>';
+    }).join('') + '</ul>';
+  }
+  function fillPickImages(items) {
+    items.forEach(function (it, i) {
+      var src = it.img;
+      if (!src && it.note) { var sl = slimByNote(it.note); src = sl && sl.background_image; }
+      if (!src && it.rid) src = null;
+      var el = out.querySelector('.art[data-ti="' + i + '"]');
+      if (src && el) putImg(el, sized(src, 300, 225), src);
+    });
+  }
+  function notOnShelf(pool) {
+    var sh = shelfGet();
+    return pool.filter(function (it) {
+      var key = it.key || (it.note ? (function () { var sl = slimByNote(it.note); return sl ? 'r:' + sl.id : ''; })() : '');
+      var e = key && sh[key];
+      return !(e && (e.s === 'played' || e.s === 'dropped'));
+    });
+  }
+
+  /* --- сравнение --- */
+  var PAIRS = [['The Elder Scrolls V: Skyrim', 'The Witcher 3: Wild Hunt'], ['Elden Ring', 'Dark Souls III'], ['Minecraft', 'Terraria'], ['Stardew Valley', 'The Sims 4']];
+  function startCompare(a, b) {
+    var names = realPool().map(function (it) { return it.name; }).sort();
+    tool.a = a || ''; tool.b = b || '';
+    toolShell('#compare', 'Сравнить две игры',
+      '<section class="sec"><p class="lab">( сравнение )</p><h2 class="statement">Выбери две игры.</h2>' +
+      '<datalist id="cmpNames">' + names.map(function (n) { return '<option value="' + esc(n) + '">'; }).join('') + '</datalist>' +
+      '<div class="cmpIn"><input id="cmpA" list="cmpNames" placeholder="первая игра" autocomplete="off" value="' + esc(tool.a) + '"><span>против</span><input id="cmpB" list="cmpNames" placeholder="вторая игра" autocomplete="off" value="' + esc(tool.b) + '"></div>' +
+      '<p class="tags">' + PAIRS.map(function (p, i) { return '<button type="button" class="tag2" data-cmppair="' + i + '">' + esc(p[0].replace(/^The Elder Scrolls V: /, '').replace(/: Wild Hunt/, '')) + ' / ' + esc(p[1].replace(/: Wild Hunt/, '').replace(/^The /, '')) + '</button>'; }).join('') + '</p>' +
+      '<div id="cmpOut"></div></section>');
+    drawCompare();
+  }
+  function drawCompare() {
+    var box = document.getElementById('cmpOut'); if (!box) return;
+    var A = entryByText(tool.a), B = entryByText(tool.b);
+    if (!A || !B) { box.innerHTML = '<p class="note2">' + ((tool.a || tool.b) ? 'Начни вводить название и выбери игру из списка: сравнить можно игры с авторскими заметками.' : 'Или нажми на готовую пару ниже.') + '</p>'; return; }
+    if (A === B) { box.innerHTML = '<p class="note2">Это одна и та же игра, выбери разные.</p>'; return; }
+    tool.list = [A, B];
+    var rows = [
+      ['время', timeText(A), timeText(B)], ['настроение', moodText(A), moodText(B)], ['цена', priceShort(A.name), priceShort(B.name)],
+      ['зайдёт, если', A.yes, B.yes], ['не зайдёт, если', A.no || '—', B.no || '—']
+    ];
+    box.innerHTML = '<div class="cmp"><div class="cmpH"><span></span><button type="button" data-tpick="0">' + esc(A.name) + ' →</button><button type="button" data-tpick="1">' + esc(B.name) + ' →</button></div>' +
+      rows.map(function (r) { return '<div class="cmpR"><span class="lab">' + r[0] + '</span><span>' + esc(r[1]) + '</span><span>' + esc(r[2]) + '</span></div>'; }).join('') + '</div>';
+  }
+
+  /* --- что сыграть на вечер --- */
+  var EV = [['Час-другой', 'партии или игры, в которые можно играть кусками'], ['Несколько вечеров', 'история, которую можно пройти до ~12 часов'], ['Неделя-две по вечерам', 'от 12 до 30 часов'], ['Надолго', 'больше 30 часов или без конца']];
+  function startEvening() { tool.ev = -1; drawEvening(); }
+  function drawEvening() {
+    var body = '<section class="sec"><p class="lab">( что сыграть на вечер )</p><h2 class="statement">Сколько у тебя времени?</h2><div class="opts">' +
+      EV.map(function (e, i) { return '<button type="button" class="opt" data-ev="' + i + '"' + (tool.ev === i ? ' aria-pressed="true"' : '') + '>' + esc(e[0]) + '<small style="display:block;opacity:.65;font-size:.8em">' + esc(e[1]) + '</small></button>'; }).join('') +
+      '</div><div id="evOut"></div></section>';
+    var y0 = window.scrollY;
+    toolShell('#evening', 'Что сыграть на вечер', body);
+    if (tool.ev >= 0) { drawEveningList(); window.scrollTo(0, y0); }
+  }
+  function drawEveningList() {
+    var box = document.getElementById('evOut'); if (!box) return;
+    var pool = notOnShelf(realPool()).map(function (it) { it.hr = hoursOf(it); return it; }), res, label;
+    var b = tool.ev;
+    if (b === 0) res = pool.filter(function (it) { return it.hr.kind === 'endless' || (it.hr.kind === 'session' && it.hr.min <= 60); });
+    else if (b === 1) res = pool.filter(function (it) { return it.hr.kind === 'story' && it.hr.h <= 12; });
+    else if (b === 2) res = pool.filter(function (it) { return it.hr.kind === 'story' && it.hr.h > 12 && it.hr.h <= 30; });
+    else res = pool.filter(function (it) { return it.hr.kind === 'endless' || (it.hr.kind === 'story' && it.hr.h > 30); });
+    res = res.sort(function () { return Math.random() - 0.5; }).slice(0, 8);
+    if (!res.length) { box.innerHTML = '<p class="note2">Под этот вариант ничего не нашлось. Попробуй другой.</p>'; return; }
+    label = function (it) {
+      if (it.hr.kind === 'story') { var ev = Math.max(1, Math.ceil(it.hr.h / 2)); return '~' + it.hr.h + ' ч, это ~' + ev + ' ' + plural(ev) + ' по 2 часа'; }
+      if (it.hr.kind === 'session') return 'партия ~' + it.hr.min + ' мин';
+      return 'без конца, можно играть кусками';
+    };
+    box.innerHTML = pickList(res, label) + '<button type="button" class="more" data-evmore>показать другие ↻</button>';
+    fillPickImages(res);
+  }
+
+  /* --- мой игровой вкус --- */
+  var PH = { calm: 'спокойные игры, где можно не спешить', tense: 'напряжение и вызов', story: 'сюжет и персонажи', open: 'большие открытые миры', fight: 'бои и испытания', comp: 'соревнования и онлайн', chill: 'творчество и спокойное занятие', solo: 'играть в одиночку', multi: 'играть с друзьями', dark: 'мрачная взрослая атмосфера', bright: 'яркая лёгкая атмосфера', hard: 'сложные игры', easy: 'игры без нервов', short: 'короткие игры', long: 'долгие игры на десятки часов', shoot: 'стрельба' };
+  function startTaste() {
+    var sh = shelfGet(), keys = Object.keys(sh), pool = realPool(), byName = {}, liked = [], dropped = [], w = {}, cnt = {};
+    pool.forEach(function (it) { byName[norm(it.name)] = it; });
+    keys.forEach(function (k) {
+      var e = sh[k], it = k.indexOf('g:') === 0 ? pool.filter(function (p) { return p.key === k; })[0] : (byName[norm(e.n)] || (function () { var nt = findNote(e.n, ''); return nt ? byName[norm(nt.n)] : null; })());
+      if (!it) return;
+      var wt = e.s === 'played' ? 2 : e.s === 'want' ? 1 : -1.5;
+      if (e.s === 'dropped') dropped.push(it); else liked.push(it);
+      (' ' + it.t + ' ').split(' ').forEach(function (x) { if (x && PH[x]) { w[x] = (w[x] || 0) + wt; if (wt > 0) cnt[x] = (cnt[x] || 0) + 1; } });
+    });
+    var body;
+    if (liked.length < 3) {
+      body = '<section class="sec"><p class="lab">( мой игровой вкус )</p><h2 class="statement">Пока рано судить.</h2>' +
+        '<p class="lead">Чтобы я понял твой вкус, отметь минимум три игры кнопками «хочу играть», «играл» или «бросил» на карточках (сейчас ' + liked.length + '). Потом вернись сюда.</p>' +
+        '<button type="button" class="more" data-tool="random">открыть случайную игру ↻</button></section>';
+      toolShell('#taste', 'Мой игровой вкус', body); return;
+    }
+    var top = Object.keys(w).filter(function (x) { return w[x] > 0; }).sort(function (x, y) { return w[y] - w[x]; }).slice(0, 3);
+    var low = Object.keys(w).filter(function (x) { return w[x] < 0 && !(w[x] > 0); }).sort(function (x, y) { return w[x] - w[y]; }).slice(0, 2);
+    var onShelf = liked.concat(dropped).map(function (it) { return it.name; });
+    var cand = pool.filter(function (it) { return onShelf.indexOf(it.name) === -1; }).map(function (it) {
+      var sc = 0, hit = [];
+      (' ' + it.t + ' ').split(' ').forEach(function (x) { if (x && w[x]) { sc += w[x]; if (w[x] > 0 && hit.indexOf(x) === -1) hit.push(x); } });
+      it.sc = sc + Math.random() * 0.5; it.why = hit.sort(function (x, y) { return w[y] - w[x]; }).slice(0, 3).map(function (x) { return WHY[x] || PH[x]; });
+      return it;
+    }).sort(function (x, y) { return y.sc - x.sc; }).slice(0, 5);
+    var bars = Object.keys(w).filter(function (x) { return w[x] > 0; }).sort(function (x, y) { return w[y] - w[x]; }).slice(0, 6);
+    var maxw = w[bars[0]] || 1;
+    body = '<section class="sec"><p class="lab">( мой игровой вкус )</p><h2 class="statement">Тебе нравится: ' + esc(top.map(function (x) { return PH[x]; }).join(', ')) + '.</h2>' +
+      '<ul class="rows">' + bars.map(function (x) { return '<li><span>' + esc(PH[x]) + '</span><span class="v">' + '█'.repeat(Math.max(1, Math.round(5 * w[x] / maxw))) + ' ' + (cnt[x] || 0) + '</span></li>'; }).join('') + '</ul>' +
+      (low.length ? '<p class="note2">Бросал игры про: ' + esc(low.map(function (x) { return PH[x]; }).join(', ')) + ', похоже, это тебе заходит хуже.</p>' : '') +
+      '<p class="lab" style="margin-top:2rem">( похоже на твой вкус )</p>' + pickList(cand, function (it) { return it.why.length ? 'потому что: ' + it.why.join(', ') : ''; }) +
+      '<p class="note2">Портрет строится по твоей полке и хранится только в этом браузере. Чем больше игр отметишь, тем точнее.</p></section>';
+    toolShell('#taste', 'Мой игровой вкус', body);
+    fillPickImages(cand);
+  }
+
   /* ---------- личная полка ---------- */
   var SHELF = { want: 'хочу играть', played: 'играл', dropped: 'бросил' };
   function shelfGet() { return cget('shelf') || {}; }
@@ -1444,6 +1646,16 @@ body::after { content: ""; position: fixed; inset: 0; z-index: 40; pointer-event
   document.addEventListener('click', function (e) {
     var t;
     if ((t = e.target.closest('[data-notei]'))) { openNote(NOTES[+t.getAttribute('data-notei')]); return; }
+    if ((t = e.target.closest('[data-tool]'))) {
+      var tn = t.getAttribute('data-tool');
+      if (tn === 'compare') startCompare(); else if (tn === 'evening') startEvening(); else if (tn === 'taste') startTaste();
+      else if (tn === 'random') { var rp = realPool(), rk = rp[Math.floor(Math.random() * rp.length)]; openEntry(rk); }
+      return;
+    }
+    if ((t = e.target.closest('[data-tpick]'))) { openEntry(tool.list[+t.getAttribute('data-tpick')]); return; }
+    if ((t = e.target.closest('[data-cmppair]'))) { var pr = PAIRS[+t.getAttribute('data-cmppair')]; startCompare(pr[0], pr[1]); return; }
+    if ((t = e.target.closest('[data-ev]'))) { tool.ev = +t.getAttribute('data-ev'); drawEvening(); return; }
+    if (e.target.closest('[data-evmore]')) { drawEveningList(); return; }
     if (e.target.closest('[data-random]')) {
       var sh0 = shelfGet(), pool = quizPool().filter(function (it) { return !doneOnShelf(it, sh0); });
       var pk = pool[Math.floor(Math.random() * pool.length)];
@@ -1494,6 +1706,11 @@ body::after { content: ""; position: fixed; inset: 0; z-index: 40; pointer-event
     else if (m && PRE.games[m[2]]) id = String(PRE.games[m[2]].id);
     return id && PRE.pages && PRE.pages[id] ? base + 'g/' + id + '/' : location.href;
   }
+  document.addEventListener('input', function (e) {
+    if (e.target && (e.target.id === 'cmpA' || e.target.id === 'cmpB')) {
+      tool.a = document.getElementById('cmpA').value; tool.b = document.getElementById('cmpB').value; drawCompare();
+    }
+  });
   function isoDay(back) { return new Date(Date.now() - back * 864e5).toISOString().slice(0, 10); }
 
   /* ---------- events ---------- */
